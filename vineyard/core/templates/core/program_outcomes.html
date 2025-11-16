@@ -1,0 +1,18 @@
+{% extends "core/head_dashboard.html" %}
+{% block content %}
+<h2>Program Outcomes</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Add Program Outcome</button>
+</form>
+
+<h3>Existing Outcomes</h3>
+<ul>
+    {% for outcome in outcomes %}
+        <li>{{ outcome.code }} - {{ outcome.description }}</li>
+    {% empty %}
+        <li>No outcomes yet.</li>
+    {% endfor %}
+</ul>
+{% endblock %}

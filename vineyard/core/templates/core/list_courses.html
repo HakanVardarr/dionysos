@@ -1,0 +1,39 @@
+{% extends "core/head_dashboard.html" %}
+
+{% block content %}
+<h2>Courses</h2>
+<table border="1" cellpadding="10" cellspacing="0">
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Created By</th>
+            <th>Learning Outcomes</th>
+            <th>Assessments</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for course in courses %}
+        <tr>
+            <td>{{ course.code }}</td>
+            <td>{{ course.name }}</td>
+            <td>{{ course.created_by.username }}</td>
+            <td>
+                {% for lo in course.learning_outcomes.all %}
+                    {{ lo.code }} - {{ lo.description }}<br>
+                {% empty %}
+                    No Learning Outcomes
+                {% endfor %}
+            </td>
+            <td>
+                {% for a in course.assesments.all %}
+                    {{ a.get_name_display }}<br>
+                {% empty %}
+                    No Assessments
+                {% endfor %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

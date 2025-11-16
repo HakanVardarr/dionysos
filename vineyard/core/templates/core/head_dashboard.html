@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Head Dashboard</title>
+    <style>
+        body { display: flex; }
+        nav { width: 200px; background: #f0f0f0; padding: 20px; }
+        main { flex: 1; padding: 20px; }
+        a { display: block; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <nav>
+        <h3>Menu</h3>
+        <a href="{% url 'add_teacher' %}">Add Teacher</a>
+        <a href="{% url 'add_student' %}">Add Student</a>
+        <a href="{% url 'program_outcomes' %}">Program Outcomes</a>
+        <a href="{% url 'list_courses' %}">Courses</a>
+    </nav>
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+</body>
+</html>
