@@ -1,13 +1,20 @@
-{% extends "core/head_dashboard.html" %}
+{% extends "core/dashboard.html" %}
 
 {% block content %}
 <h2>Courses</h2>
+<a href="{% url 'create_course' %}" style="display:inline-block; margin-bottom:15px;">
+    ➕ Create Course
+</a>
 <table border="1" cellpadding="10" cellspacing="0">
     <thead>
         <tr>
             <th>Code</th>
             <th>Name</th>
-            <th>Created By</th>
+
+            {% if request.user.role == "head" %}
+                <th>Created By</th>
+            {% endif %}
+
             <th>Learning Outcomes</th>
             <th>Assessments</th>
         </tr>
@@ -17,7 +24,11 @@
         <tr>
             <td>{{ course.code }}</td>
             <td>{{ course.name }}</td>
-            <td>{{ course.created_by.username }}</td>
+
+            {% if request.user.role == "head" %}
+                <td>{{ course.created_by.username }}</td>
+            {% endif %}
+
             <td>
                 {% for lo in course.learning_outcomes.all %}
                     {{ lo.code }} - {{ lo.description }}<br>

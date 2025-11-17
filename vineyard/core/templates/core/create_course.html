@@ -1,0 +1,128 @@
+{% extends "core/dashboard.html" %}
+
+{% block content %}
+<h2>Create Course</h2>
+{% csrf_token %}
+<label for="course_code">Course Code:</label>
+<input type="text" id="course_code" name="course_code" placeholder="Enter course code" required>
+<br><br>
+
+<label for="course_name">Course Name:</label>
+<input type="text" id="course_name" name="course_name" placeholder="Enter course name" required>
+<br><br>
+
+
+<h3>Learning Outcomes</h3>
+<button id="new_learning_outcome">New Outcome</button>
+<ul id="learning_outcomes">
+    
+</ul>
+<br/>
+
+<h3>Assessments</h3>
+<button>New Assessment</button>
+<ul>
+    <li>
+        <label for="assessment_type">Assessment Type:</label>
+        <select name="assessment_type">
+            <option value="midterm">Midterm</option>
+            <option value="project">Project</option>
+            <option value="final">Final</option>
+        </select>
+        <br/>
+        <br/>
+
+        <ul>
+            <li>
+                <label for="learning_outcome">Learning Outcome:</label>
+                <select name="assessment_type">
+                    <option value="CSE101-LO1">CSE101-LO1</option>
+                </select>
+
+                <label for="po_weight">Weight:</label>
+                <select name="po_weight" id="po_weight">
+                    {% for i in "12345" %}
+                        <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                    {% endfor %}
+                </select>
+            </li>
+        </ul>
+
+        <br/>
+        <button>New Learning Outcome</button>
+
+    </li>
+</ul>
+
+<button type="submit">Create Course</button>
+
+<script>
+let newOutcomeBtn = document.getElementById("new_learning_outcome");
+let learningOutcomesUl = document.getElementById("learning_outcomes");
+
+newOutcomeBtn.addEventListener("click", () => {
+    let count = learningOutcomesUl.getElementsByClassName("learning_outcome_item").length + 1;
+
+    let li = document.createElement("li");
+    li.innerHTML = `
+        <h4>CSE101-LO${count}</h4>
+        <label>Description:</label>
+        <input type="text" name="learning_outcome_description" placeholder="Enter description">
+        <br/><br/>
+
+       <ul class="program_outcomes_list">
+            <li class="program_outcome_item">
+                <label>Program Outcome:</label>
+                <select name="program_outcome">
+                    {% for outcome in program_outcomes %}
+                        <option value="{{ outcome.code }}">{{ outcome.description }}</option>
+                    {% endfor %}
+                </select>
+
+                <label>Weight:</label>
+                <select name="po_weight">
+                    {% for i in "12345" %}
+                        <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                    {% endfor %}
+                </select>
+            </li>
+        </ul>
+        <br/>
+        <button class="new_program_outcome">New Program Outcome</button>
+      
+        <br/><br/>
+    `;
+    li.className = "learning_outcome_item"
+    learningOutcomesUl.appendChild(li);
+});
+
+document.addEventListener("click", (e) => {
+    if (e.target.classList.contains("new_program_outcome")) {
+        e.preventDefault();
+        let parent = e.target.parentElement;
+        let program_outcomes = parent.children[5];
+
+        let li = document.createElement("li");
+        li.innerHTML = `
+            <label>Program Outcome:</label>
+            <select name="program_outcome">
+                {% for outcome in program_outcomes %}
+                    <option value="{{ outcome.code }}">{{ outcome.description }}</option>
+                {% endfor %}
+            </select>
+
+            <label>Weight:</label>
+            <select name="po_weight">
+                {% for i in "12345" %}
+                    <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                {% endfor %}
+            </select>
+            <br/>
+        `;
+        program_outcomes.appendChild(li)
+    }
+});
+
+</script>
+
+{% endblock %}

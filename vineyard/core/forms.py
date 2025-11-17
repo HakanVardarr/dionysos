@@ -1,8 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from django.utils.crypto import get_random_string
 
-from .models import ProgramOutcome, User
+from .models import Assesment, Course, LearningOutcome, ProgramOutcome, User
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -25,7 +24,7 @@ class HeadCreateUserForm(forms.ModelForm):
         user = super().save(commit=False)
         if role:
             user.role = role
-        password = get_random_string(length=8)
+        password = "dionysos"
         user.set_password(password)
         if commit:
             user.save()
@@ -36,3 +35,21 @@ class ProgramOutcomeForm(forms.ModelForm):
     class Meta:
         model = ProgramOutcome
         fields = ("code", "description")
+
+
+class CourseForm(forms.ModelForm):
+    class Meta:
+        model = Course
+        fields = ["code", "name"]
+
+
+class LearningOutcomeForm(forms.ModelForm):
+    class Meta:
+        model = LearningOutcome
+        fields = ["code", "description"]
+
+
+class AssesmentForm(forms.ModelForm):
+    class Meta:
+        model = Assesment
+        fields = ["name"]

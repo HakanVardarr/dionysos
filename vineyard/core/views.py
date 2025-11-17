@@ -5,21 +5,54 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import redirect, render
 
 from .decorators import head_required
-from .forms import CustomUserCreationForm, HeadCreateUserForm, ProgramOutcomeForm
-from .models import Course
+from .forms import (
+    CourseForm,
+    CustomUserCreationForm,
+    HeadCreateUserForm,
+    ProgramOutcomeForm,
+)
+from .models import Assesment, Course, LearningOutcome
 
 User = get_user_model()
 
 
-@head_required
-def head_dashboard(request):
-    return render(request, "core/head_dashboard.html")
+def dashboard(request):
+    return render(request, "core/dashboard.html")
 
 
-@head_required
 def list_courses(request):
-    courses = Course.objects.all()
+    user = request.user
+    if user.role == "student":
+        return
+
+    if user.role == "teacher":
+        courses = Course.objects.filter(created_by=user)
+    else:
+        courses = Course.objects.all()
     return render(request, "core/list_courses.html", {"courses": courses})
+
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
+
+from .models import (
+    Assesment,
+    AssessmentLearningOutcome,
+    Course,
+    LearningOutcome,
+    ProgramLearningOutcome,
+    ProgramOutcome,
+)
+
+
+def create_course(request):
+    program_outcomes = ProgramOutcome.objects.all()
+
+    return render(
+        request,
+        "core/create_course.html",
+        {"program_outcomes": list(program_outcomes)},
+    )
 
 
 @head_required
@@ -28,7 +61,7 @@ def add_teacher(request):
         form = HeadCreateUserForm(request.POST)
         if form.is_valid():
             user, password = form.save(role="teacher")
-            return redirect("head_dashboard")
+            return redirect("dashboard")
     else:
         form = HeadCreateUserForm()
     return render(request, "core/add_user.html", {"form": form})
@@ -40,7 +73,7 @@ def add_student(request):
         form = HeadCreateUserForm(request.POST)
         if form.is_valid():
             user, password = form.save(role="student")
-            return redirect("head_dashboard")
+            return redirect("dashboard")
     else:
         form = HeadCreateUserForm()
     return render(request, "core/add_user.html", {"form": form})

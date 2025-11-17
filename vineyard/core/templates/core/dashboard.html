@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <style>
+        body { 
+            display: flex; 
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 200px;
+            right: 0;
+            height: 60px;
+            background: #e9e9e9;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 20px;
+        }
+
+        nav { 
+            width: 200px; 
+            background: #e9e9e9; 
+            padding: 20px; 
+            height: 100vh;
+        }
+
+        main { 
+            flex: 1; 
+            padding: 90px 20px 20px 20px;
+        }
+
+        a { 
+            display: block; 
+            margin: 10px 0; 
+            text-decoration: none;
+            color: #333;
+        }
+
+        .user-info {
+            margin-right: 20px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .logout-btn {
+            padding: 6px 12px;
+            background: #d9534f;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+
+        .logout-btn:hover {
+            background: #c9302c;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <h3>Menu</h3>
+        {% if user.role == "head" %}
+            <a href="{% url 'add_teacher' %}">Add Teacher</a>
+            <a href="{% url 'add_student' %}">Add Student</a>
+            <a href="{% url 'program_outcomes' %}">Program Outcomes</a>
+            <a href="{% url 'list_courses' %}">Courses</a>
+        {% endif %}
+        {% if user.role == "teacher" %}
+            <a href="{% url 'list_courses'%}">Courses</a>
+        {% endif %}
+    </nav>
+    <header>
+        <div class="user-info">
+            <strong>{{ request.user.username }}</strong>  
+            ({{ request.user.role|title }})
+        </div>
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button class="logout-btn" type="submit">Logout</button>
+        </form>
+    </header>
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+</body>
+</html>
