@@ -1,0 +1,212 @@
+{% extends "core/dashboard.html" %}
+{% block content %}
+<div class="add-user-page">
+
+<style>
+/* Container ve başlık */
+.add-user-page {
+    max-width: 800px;
+    margin-top: 20px;
+}
+
+/* Başlık */
+.add-user-page h2 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+/* Add Teacher Butonu */
+.add-teacher-btn {
+    background-color: #3498db;
+    color: white;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-block;
+    margin-bottom: 20px;
+    transition: background 0.3s;
+    text-decoration: none;
+}
+.add-teacher-btn:hover {
+    background-color: #2980b9;
+}
+
+/* Mevcut Öğretmenler Tablosu */
+.teachers-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.teachers-table th, .teachers-table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.teachers-table thead {
+    background-color: #2c3e50;
+    color: #ecf0f1;
+}
+
+.teachers-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.teachers-table tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Modal (popup) stilleri */
+.modal {
+    display: none; /* başlangıçta gizli */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: #ecf0f1;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 6px;
+    width: 400px;
+    position: relative;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+/* Close button */
+.close-modal {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Modal form satırları */
+.modal .form-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal .form-row label {
+    width: 100px; /* sabit genişlik */
+    text-align: right;
+    font-weight: bold;
+}
+
+.modal .form-row input, 
+.modal .form-row select {
+    flex: 1;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+/* Submit button */
+.modal form button[type="submit"] {
+    background-color: #3498db;
+    color: white;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s;
+    margin-top: 10px;
+}
+.modal form button[type="submit"]:hover {
+    background-color: #2980b9;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .teachers-table, .teachers-table thead, 
+    .teachers-table tbody, .teachers-table th, 
+    .teachers-table td, .teachers-table tr { display: block; }
+
+    .teachers-table thead tr { position: absolute; top: -9999px; left: -9999px; }
+
+    .teachers-table tr { margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; padding: 10px; background: #fff; }
+
+    .teachers-table td { border: none; position: relative; padding-left: 50%; }
+
+    .teachers-table td::before {
+        position: absolute;
+        left: 15px;
+        width: 45%;
+        padding-right: 10px;
+        white-space: nowrap;
+        font-weight: bold;
+        content: attr(data-label);
+    }
+}
+</style>
+
+<h2>Teachers</h2>
+<!-- Add Teacher Butonu -->
+<button class="add-teacher-btn" id="openModalBtn">➕ Add Teacher</button>
+
+<!-- Mevcut Öğretmenler Tablosu -->
+<table class="teachers-table">
+    <thead>
+        <tr>
+            <th>Username</th>
+            <th>Email</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for teacher in teachers %}
+        <tr>
+            <td data-label="Username">{{ teacher.username }}</td>
+            <td data-label="Email">{{ teacher.email }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="2" style="text-align:center;">No teachers yet.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Modal -->
+<div id="addTeacherModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" id="closeModalBtn">&times;</span>
+        <h3>Add Teacher</h3>
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form-row">
+                    {{ field.label_tag }}
+                    {{ field }}
+                </div>
+            {% endfor %}
+            <button type="submit">Create Teacher</button>
+        </form>
+    </div>
+</div>
+
+<script>
+// Modal aç/kapa
+const modal = document.getElementById("addTeacherModal");
+const openBtn = document.getElementById("openModalBtn");
+const closeBtn = document.getElementById("closeModalBtn");
+
+openBtn.onclick = () => { modal.style.display = "block"; }
+closeBtn.onclick = () => { modal.style.display = "none"; }
+window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; }
+</script>
+
+</div>
+{% endblock %}

@@ -1,6 +1,116 @@
 {% extends "core/dashboard.html" %}
 
 {% block content %}
+
+<style>
+/* Genel stiller */
+h2, h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+}
+
+input[type="text"], select {
+    width: 100%;
+    max-width: 400px;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+button {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 5px 0;
+    transition: background 0.3s;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+#new_learning_outcome, #new_assessment {
+    background-color: #3498db;
+    color: white;
+}
+
+#new_learning_outcome:hover, #new_assessment:hover {
+    background-color: #2980b9;
+}
+
+#learning_outcomes, #assessments {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 10px;
+}
+
+.learning_outcome_item, .assessments_item {
+    background: #ecf0f1;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.program_outcomes_list, .assessment_learning_outcomes {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 10px;
+}
+
+.program_outcome_item, .assessment_learning_outcome_item {
+    background: #fff;
+    border: 1px solid #dcdcdc;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.new_program_outcome, .assessment_new_learning_outcome {
+    background-color: #2ecc71;
+    color: white;
+}
+
+.new_program_outcome:hover, .assessment_new_learning_outcome:hover {
+    background-color: #27ae60;
+}
+
+#create_course {
+    background-color: #e67e22;
+    color: white;
+    margin-top: 20px;
+}
+
+#create_course:hover {
+    background-color: #d35400;
+}
+
+ul li label {
+    font-weight: normal;
+    margin-right: 10px;
+}
+
+ul li select {
+    width: auto;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+ul li input {
+    width: calc(100% - 10px);
+}
+
+</style>
+
+
 <h2>Create Course</h2>
 {% csrf_token %}
 <label for="course_code">Course Code:</label>
@@ -15,14 +125,177 @@
 <h3>Learning Outcomes</h3>
 <button id="new_learning_outcome">New Outcome</button>
 <ul id="learning_outcomes">
-    
 </ul>
 <br/>
 
 <h3>Assessments</h3>
-<button>New Assessment</button>
-<ul>
-    <li>
+<button id="new_assessment">New Assessment</button>
+<ul id="assessments">
+</ul>
+<button type="submit" id="create_course">Create Course</button>
+
+<script>
+let newOutcomeBtn = document.getElementById("new_learning_outcome");
+let learningOutcomesUl = document.getElementById("learning_outcomes");
+let newAssessmentsBtn = document.getElementById("new_assessment");
+let assessmentsUl = document.getElementById("assessments");
+let createCourseBtn = document.getElementById("create_course");
+let courseCodeInput = document.getElementById("course_code");
+
+
+function updateLearningOutcomeOptions() {
+    let learningOutcomeOptions = "";
+    for (let i = 0; i < learningOutcomesUl.children.length; i++) {
+        let optionText = learningOutcomesUl.children[i].getElementsByTagName("h4")[0].innerHTML;
+        learningOutcomeOptions += `<option value="${optionText}">${optionText}</option>\n`
+    }
+
+    let assessments_selections = document.getElementsByClassName("assessment_type");
+    for (let i = 0; i < assessments_selections.length; i++) 
+    {
+        assessments_selections[i].innerHTML = learningOutcomeOptions;
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
+courseCodeInput.addEventListener("input", (e) => {
+    const value = e.target.value;
+
+    for (let i = 0; i < learningOutcomesUl.children.length; i++)
+    {
+        let lo = learningOutcomesUl.children[i];
+        lo.getElementsByTagName("h4")[0].innerHTML = `${value}-LO${i + 1}`;
+    }
+
+    updateLearningOutcomeOptions();
+});
+
+createCourseBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+
+    let courseCode = document.getElementById("course_code").value;
+    let courseName = document.getElementById("course_name").value;
+
+   
+
+    let learning_outcomes = [];
+    for (let i = 0; i < learningOutcomesUl.children.length; i++) 
+    {
+        let lo = learningOutcomesUl.children[i];
+        let lo_code = lo.getElementsByTagName("h4")[0].innerHTML;
+        let lo_description = lo.getElementsByTagName("input")[0].value;
+        let lo_pos = lo.getElementsByTagName("ul")[0];
+
+        if (lo_description == "") {
+            window.alert(`Learning Outcome: ${lo_code} lacks description`);
+            return;
+        }
+
+        let pos = [];
+        for (let k = 0; k < lo_pos.children.length; k++) 
+        {
+            let po = lo_pos.children[k];
+            let po_value = po.getElementsByTagName("select")[0].value;
+            let po_weight = po.getElementsByTagName("select")[1].value;
+
+            pos.push(
+                {
+                    "code": po_value,
+                    "weight": po_weight,
+                }
+            )
+        }
+
+        learning_outcomes.push({
+            "code": lo_code,
+            "description": lo_description,
+            "program_outcomes": pos
+        });
+    }
+
+    let assessments = [];
+    for (let i = 0; i < assessmentsUl.children.length; i++)
+    {
+        let assessment = assessmentsUl.children[i];
+        let assessment_type = assessment.getElementsByTagName("select")[0].value;
+        let los = assessment.getElementsByTagName("ul")[0];
+
+        let assessment_learning_outcomes = [];
+        for (let k = 0; k < los.children.length; k++)
+        {
+            let lo = los.children[k];
+            let lo_code = lo.getElementsByTagName("select")[0].value;
+            let lo_weight = lo.getElementsByTagName("select")[1].value;
+
+            if (lo_code == "") {
+                window.alert("You need to choose a learning outcome for an assessment");
+                return;
+            }
+
+            assessment_learning_outcomes.push(
+                {
+                    "code": lo_code,
+                    "weight": lo_weight,
+                }
+            )
+        }
+
+        assessments.push(
+            {
+                "assessment_type": assessment_type,
+                "learning_outcomes": assessment_learning_outcomes,
+            }
+        )
+    }
+
+    const data = {
+        course_code: courseCode,
+        course_name: courseName,
+        learning_outcomes,
+        assessments,
+    }
+
+    const csrftoken = getCookie("csrftoken"); 
+    fetch("/dashboard/create_course", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrftoken
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.status === "success") {
+            alert(result.message);
+        } else {
+            alert(`Error creating course: ${result.message}`);
+        }
+    })
+    .catch(error => console.error("Error:", error));
+});
+
+newAssessmentsBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    let count = assessmentsUl.getElementsByClassName("assessments_item").length + 1;
+
+    let li = document.createElement("li");
+    li.innerHTML = `
         <label for="assessment_type">Assessment Type:</label>
         <select name="assessment_type">
             <option value="midterm">Midterm</option>
@@ -35,8 +308,7 @@
         <ul>
             <li>
                 <label for="learning_outcome">Learning Outcome:</label>
-                <select name="assessment_type">
-                    <option value="CSE101-LO1">CSE101-LO1</option>
+                <select name="assessment_type" class="assessment_type">
                 </select>
 
                 <label for="po_weight">Weight:</label>
@@ -49,38 +321,38 @@
         </ul>
 
         <br/>
-        <button>New Learning Outcome</button>
+        <button class="assessment_new_learning_outcome">New Learning Outcome</button>
 
-    </li>
-</ul>
+        <br/><br/>
+    `;
+    li.className = "assessments_item";
+    assessmentsUl.appendChild(li);
+    updateLearningOutcomeOptions();
+});
 
-<button type="submit">Create Course</button>
-
-<script>
-let newOutcomeBtn = document.getElementById("new_learning_outcome");
-let learningOutcomesUl = document.getElementById("learning_outcomes");
-
-newOutcomeBtn.addEventListener("click", () => {
+newOutcomeBtn.addEventListener("click", (e) => {
+    e.preventDefault();
     let count = learningOutcomesUl.getElementsByClassName("learning_outcome_item").length + 1;
+    let courseName = courseCodeInput.value;
 
     let li = document.createElement("li");
     li.innerHTML = `
-        <h4>CSE101-LO${count}</h4>
+        <h4>${courseName}-LO${count}</h4>
         <label>Description:</label>
-        <input type="text" name="learning_outcome_description" placeholder="Enter description">
+        <input type="text" id="learning_outcome_description" name="learning_outcome_description" placeholder="Enter description">
         <br/><br/>
 
        <ul class="program_outcomes_list">
             <li class="program_outcome_item">
                 <label>Program Outcome:</label>
-                <select name="program_outcome">
+                <select name="program_outcome" id="program_outcome_select">
                     {% for outcome in program_outcomes %}
                         <option value="{{ outcome.code }}">{{ outcome.description }}</option>
                     {% endfor %}
                 </select>
 
                 <label>Weight:</label>
-                <select name="po_weight">
+                <select name="po_weight" id="program_outcome_weight">
                     {% for i in "12345" %}
                         <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
                     {% endfor %}
@@ -94,6 +366,7 @@ newOutcomeBtn.addEventListener("click", () => {
     `;
     li.className = "learning_outcome_item"
     learningOutcomesUl.appendChild(li);
+    updateLearningOutcomeOptions();
 });
 
 document.addEventListener("click", (e) => {
@@ -120,8 +393,34 @@ document.addEventListener("click", (e) => {
             <br/>
         `;
         program_outcomes.appendChild(li)
+    } else if (e.target.classList.contains("assessment_new_learning_outcome")) {
+        e.preventDefault();
+
+        let parent = e.target.parentElement;
+        let learning_outcomes = parent.children[4];
+
+        let li = document.createElement("li");
+        li.innerHTML = `
+            <label for="learning_outcome">Learning Outcome:</label>
+            <select name="assessment_type" class="assessment_type">
+            </select>
+
+            <label for="po_weight">Weight:</label>
+            <select name="po_weight" id="po_weight">
+                {% for i in "12345" %}
+                    <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                {% endfor %}
+            </select>
+            <br/>
+        `;
+        learning_outcomes.appendChild(li);
+        updateLearningOutcomeOptions();
     }
 });
+
+
+
+
 
 </script>
 

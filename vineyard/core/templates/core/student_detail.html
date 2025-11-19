@@ -1,0 +1,67 @@
+{% extends "core/dashboard.html" %}
+
+{% block content %}
+<div class="student-detail-page">
+
+<style>
+.student-detail-page {
+    max-width: 600px;
+    margin-top: 20px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 6px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* Başlık */
+.student-detail-page h2 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+/* Öğrenci bilgileri */
+.student-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.student-info label {
+    font-weight: bold;
+    width: 150px;
+}
+
+/* Back butonu */
+.back-btn {
+    margin-top: 20px;
+    padding: 8px 14px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.3s;
+}
+
+.back-btn:hover {
+    background-color: #2980b9;
+}
+</style>
+
+<h2>Student Detail</h2>
+
+{% if student %}
+<div class="student-info">
+    <div><label>Username:</label> {{ student.username }}</div>
+    <div><label>Email:</label> {{ student.email }}</div>
+    <div><label>Role:</label> {{ student.role|title }}</div>
+</div>
+{% else %}
+<p>No student found.</p>
+{% endif %}
+
+<a href="{% url 'students' %}" class="back-btn">← Back to Students</a>
+
+</div>
+{% endblock %}

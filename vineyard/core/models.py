@@ -1,10 +1,10 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from pyexpat import model
-
 
 # Create your models here.
+
+
 class User(AbstractUser):
     ROLE_CHOICES = (
         ("student", "Student"),
@@ -17,7 +17,7 @@ class User(AbstractUser):
 
 class Course(models.Model):
     code = models.CharField(max_length=10, unique=True)
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, unique=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
