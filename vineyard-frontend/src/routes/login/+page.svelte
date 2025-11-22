@@ -1,11 +1,23 @@
 <script lang="ts">
+    import { goto } from '$app/navigation';
+    import { auth } from '$lib/stores/auth';
+    import { onMount } from 'svelte';
+
     let username = '';
     let password = '';
     let errorMessage = '';
 
+    onMount(() => {
+        const unsubscribe = auth.subscribe(($auth) => {
+            if ($auth.access) {
+                goto('/dashboard');
+            }
+        });
+    });
+
     async function login() {
         errorMessage = '';
-        const res = await fetch('http://localhost:8080/api/login', {
+        const res = await fetch('http://localhost:8080/api/token/login/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password }),
@@ -17,8 +29,10 @@
         }
 
         const data = await res.json();
-        localStorage.setItem('access', data.access);
-        localStorage.setItem('refresh', data.refresh);
+        auth.set({
+            access: data.access,
+            refresh: data.refresh,
+        });
     }
 </script>
 
