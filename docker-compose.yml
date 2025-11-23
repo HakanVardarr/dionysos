@@ -1,15 +1,24 @@
 services:
-  web:
-    build: ./vineyard
+  backend:
+    build: ./vineyard-backend
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - ./vineyard:/app
+      - ./vineyard-backend:/app
     ports:
       - "8080:8000"
     env_file:
       - .env
     depends_on:
       - db
+  frontend:
+    build: ./vineyard-frontend
+    volumes:
+      - ./vineyard-frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
   db:
     image: postgres:16
     container_name: dionysos_postgres
