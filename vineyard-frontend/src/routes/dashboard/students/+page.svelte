@@ -156,7 +156,6 @@
     }
 
     const columns: Column[] = [
-        { key: 'id', label: 'ID' },
         { key: 'username', label: 'Username' },
         { key: 'email', label: 'Email' },
     ];
