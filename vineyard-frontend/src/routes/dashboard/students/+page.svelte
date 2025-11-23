@@ -7,7 +7,6 @@
     import type { Column, Action } from '$lib/components/Table.svelte';
 
     let students: any[] = [];
-    let loading = true;
 
     let showModal = false;
     let modalStudent: any = null;
@@ -42,7 +41,6 @@
             const data = await res.json();
             students = data.students;
         }
-        loading = false;
     }
 
     function openModal(
@@ -155,6 +153,27 @@
         await fetchStudents();
     }
 
+    async function addStudents(file: File) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await fetch(`http://localhost:8080/api/students/bulk/`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+            body: formData,
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            console.error('Upload failed:', error);
+        } else {
+            const data = await res.json();
+            await fetchStudents();
+        }
+    }
+
     const columns: Column[] = [
         { key: 'username', label: 'Username' },
         { key: 'email', label: 'Email' },
@@ -174,31 +193,33 @@
     ];
 </script>
 
-{#if loading}
-    <p class="text-center text-purple-500 mt-10">Loading...</p>
-{:else}
-    <Table
-        {columns}
-        {actions}
-        data={students}
-        searchEnabled={true}
-        addLabel="Add Student"
-        onAdd={() => openModal('add')}
-    />
+<h1 class="text-2xl font-bold px-6">Student Management</h1>
+<p class="text-gray-400 mb-4 px-6">
+    Manage students, view their progress, and add new student accounts.
+</p>
 
-    {#if showModal}
-        <Modal
-            show={showModal}
-            data={modalStudent}
-            label="Student"
-            mode={modalMode}
-            {errorMessage}
-            bind:editUsername
-            bind:editEmail
-            onSave={saveEdit}
-            onDelete={confirmDelete}
-            onAdd={addStudent}
-            onClose={closeModal}
-        />
-    {/if}
+<Table
+    {columns}
+    {actions}
+    data={students}
+    searchEnabled={true}
+    addLabel="Add Student"
+    onAdd={() => openModal('add')}
+    onBulkAdd={addStudents}
+/>
+
+{#if showModal}
+    <Modal
+        show={showModal}
+        data={modalStudent}
+        label="Student"
+        mode={modalMode}
+        {errorMessage}
+        bind:editUsername
+        bind:editEmail
+        onSave={saveEdit}
+        onDelete={confirmDelete}
+        onAdd={addStudent}
+        onClose={closeModal}
+    />
 {/if}

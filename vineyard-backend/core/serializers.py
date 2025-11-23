@@ -1,4 +1,4 @@
-from core.models import User
+from core.models import ProgramOutcome, User
 from django.contrib.auth.hashers import make_password
 from django.core.validators import validate_email
 from rest_framework import serializers
@@ -107,3 +107,9 @@ class HeadUserSerializer(serializers.Serializer):
             is_staff=True,
         )
         return user
+
+
+class ProgramOutcomeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProgramOutcome
+        fields = ["code", "description"]

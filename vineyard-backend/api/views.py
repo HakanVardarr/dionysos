@@ -1,6 +1,7 @@
-from core.models import User
+from core.models import Course, ProgramOutcome, User
 from core.serializers import (
     HeadUserSerializer,
+    ProgramOutcomeSerializer,
     StudentCreateSerializer,
     TeacherCreateSerializer,
     UserSerializer,
@@ -88,6 +89,35 @@ def teacher_detail(request, id):
         return Response({"message": "Teacher deleted successfully."})
 
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def bulk_upload_teachers(request):
+    file = request.FILES.get("file")
+    if not file:
+        return Response({"detail": "No file provided"}, status=400)
+
+    import csv
+    import io
+
+    decoded_file = io.TextIOWrapper(file, encoding="utf-8")
+    reader = csv.DictReader(decoded_file)
+    created = 0
+
+    for row in reader:
+        try:
+            _ = User.objects.create_user(
+                username=row["username"],
+                email=row["email"],
+                role="teacher",
+                password="dionysos",
+            )
+            created += 1
+        except Exception as e:
+            continue
+
+    return Response({"message": f"{created} teachers created successfully."})
+
+
 @api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated, IsAdminUser])
 def students(request):
@@ -127,3 +157,41 @@ def student_detail(request, id):
     elif request.method == "DELETE":
         student.delete()
         return Response({"message": "Student deleted successfully."})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def bulk_upload_students(request):
+    file = request.FILES.get("file")
+    if not file:
+        return Response({"detail": "No file provided"}, status=400)
+
+    import csv
+    import io
+
+    decoded_file = io.TextIOWrapper(file, encoding="utf-8")
+    reader = csv.DictReader(decoded_file)
+    created = 0
+
+    for row in reader:
+        try:
+            _ = User.objects.create_user(
+                username=row["username"],
+                email=row["email"],
+                role="student",
+                password="dionysos",
+            )
+            created += 1
+        except Exception as e:
+            continue
+
+    return Response({"message": f"{created} students created successfully."})
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def program_outcomes(request):
+    if request.method == "GET":
+        program_outcomes = ProgramOutcome.objects.all()
+        serializer = ProgramOutcomeSerializer(program_outcomes, many=True)
+        return Response({"program-outcomes": serializer.data})

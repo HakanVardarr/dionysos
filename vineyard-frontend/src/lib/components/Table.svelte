@@ -14,6 +14,22 @@
     export let searchEnabled = true;
     export let addLabel: string | null = null;
     export let onAdd: (() => void) | null = null;
+    export let onBulkAdd: ((file: File) => void) | null = null;
+    export let onRowClick: ((row: any) => void) | null = null;
+
+    let fileInput: HTMLInputElement;
+
+    function triggerBulkUpload() {
+        fileInput.click();
+    }
+
+    function handleFileChange(event: Event) {
+        const target = event.target as HTMLInputElement;
+        if (target.files && target.files.length > 0) {
+            const file = target.files[0];
+            if (onBulkAdd) onBulkAdd(file);
+        }
+    }
 
     let searchTerm = '';
 
@@ -24,6 +40,30 @@
                 .includes(searchTerm.toLowerCase()),
         ),
     );
+
+    let currentPage = 1;
+    let pageSize = 10;
+
+    $: totalPages = Math.ceil(filteredData.length / pageSize);
+
+    $: paginatedData = filteredData.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize,
+    );
+
+    function goToPage(page: number) {
+        if (page >= 1 && page <= totalPages) {
+            currentPage = page;
+        }
+    }
+
+    function nextPage() {
+        if (currentPage < totalPages) currentPage += 1;
+    }
+
+    function prevPage() {
+        if (currentPage > 1) currentPage -= 1;
+    }
 </script>
 
 <div class="flex flex-col p-6 gap-4">
@@ -38,15 +78,28 @@
                 />
             {/if}
 
-            {#if addLabel && onAdd}
-                <button
-                    type="button"
-                    on:click={onAdd}
-                    class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition"
-                >
-                    {addLabel}
-                </button>
-            {/if}
+            <button
+                type="button"
+                on:click={onAdd}
+                class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition"
+            >
+                {addLabel}
+            </button>
+
+            <button
+                type="button"
+                on:click={triggerBulkUpload}
+                class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition"
+            >
+                Bulk Upload
+            </button>
+            <input
+                type="file"
+                accept=".csv,.xlsx"
+                bind:this={fileInput}
+                class="hidden"
+                on:change={handleFileChange}
+            />
         </div>
     {/if}
 
@@ -68,8 +121,11 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-700">
-                {#each filteredData as row}
-                    <tr>
+                {#each paginatedData as row}
+                    <tr
+                        class="hover:bg-gray-800 cursor-pointer"
+                        on:click={() => onRowClick?.(row)}
+                    >
                         {#each columns as col}
                             <td class="px-6 py-4">{row[col.key]}</td>
                         {/each}
@@ -79,7 +135,10 @@
                                     <button
                                         type="button"
                                         class={`flex-1 text-sm ${action.colorClass ?? 'text-blue-400'}`}
-                                        on:click={() => action.callback(row)}
+                                        on:click={(e) => {
+                                            e.stopPropagation();
+                                            action.callback(row);
+                                        }}
                                     >
                                         <span
                                             class="hover:underline cursor-pointer"
@@ -94,4 +153,36 @@
             </tbody>
         </table>
     </div>
+
+    {#if totalPages > 1}
+        <div class="flex justify-center items-center gap-2 mt-4">
+            <button
+                on:click={prevPage}
+                class="px-3 py-1 bg-gray-800 rounded hover:bg-gray-700 transition"
+                disabled={currentPage === 1}
+            >
+                Prev
+            </button>
+
+            {#each Array(totalPages) as _, i}
+                <button
+                    on:click={() => goToPage(i + 1)}
+                    class="px-3 py-1 rounded hover:bg-gray-700 transition
+                           {currentPage === i + 1
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-800 text-gray-200'}"
+                >
+                    {i + 1}
+                </button>
+            {/each}
+
+            <button
+                on:click={nextPage}
+                class="px-3 py-1 bg-gray-800 rounded hover:bg-gray-700 transition"
+                disabled={currentPage === totalPages}
+            >
+                Next
+            </button>
+        </div>
+    {/if}
 </div>
