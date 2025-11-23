@@ -7,7 +7,7 @@
     let loading = true;
 
     onMount(async () => {
-        const res = await fetch('http://localhost:8080/api/check-head-user');
+        const res = await fetch('http://localhost:8080/api/check-head-user/');
         if (res.ok) {
             const data = await res.json();
             canCreateHead = data.can_create_head;
