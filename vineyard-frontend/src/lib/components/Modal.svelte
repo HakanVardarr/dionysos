@@ -1,7 +1,12 @@
 <script lang="ts">
     export let errorMessage: string = '';
     export let show = false;
-    export let mode: 'add' | 'edit' | 'delete' = 'edit';
+    export let mode:
+        | 'add'
+        | 'edit'
+        | 'edit-outcome'
+        | 'delete'
+        | 'add-outcome' = 'edit';
     export let data: any = null;
     export let label: string | null = null;
     export let editUsername = '';
@@ -15,7 +20,9 @@
         if (e.key === 'Enter') {
             e.preventDefault();
             if (mode === 'add' && onAdd) onAdd();
+            else if (mode === 'add-outcome' && onAdd) onAdd();
             else if (mode === 'edit' && onSave) onSave();
+            else if (mode === 'edit-outcome' && onSave) onSave();
             else if (mode === 'delete' && onDelete) onDelete();
         }
     }
@@ -70,6 +77,46 @@
                         </button>
                     </div>
                 </form>
+            {:else if mode === 'edit-outcome'}
+                <h2 class="text-2xl font-bold mb-4 text-purple-500">
+                    Edit Outcome
+                </h2>
+
+                <form
+                    class="flex flex-col gap-4"
+                    on:submit|preventDefault={() => onSave?.()}
+                >
+                    <input
+                        type="text"
+                        bind:value={editUsername}
+                        placeholder="Outcome Code"
+                        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded-md"
+                        on:keydown={handleKeyDown}
+                    />
+
+                    <textarea
+                        bind:value={editEmail}
+                        placeholder="Description"
+                        rows="3"
+                        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded-md"
+                    ></textarea>
+
+                    <div class="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            class="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 transition"
+                            on:click={onClose}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition"
+                        >
+                            Save
+                        </button>
+                    </div>
+                </form>
             {:else if mode === 'edit'}
                 <h2 class="text-2xl font-bold mb-4 text-purple-500">
                     Edit {label}
@@ -103,6 +150,46 @@
                             class="px-4 py-2 bg-purple-600 text-white rounded-md cursor-pointer hover:bg-purple-700 transition"
                         >
                             Save
+                        </button>
+                    </div>
+                </form>
+            {:else if mode === 'add-outcome'}
+                <h2 class="text-2xl font-bold mb-4 text-purple-500">
+                    Add Outcome
+                </h2>
+
+                <form
+                    class="flex flex-col gap-4"
+                    on:submit|preventDefault={() => onAdd?.()}
+                >
+                    <input
+                        type="text"
+                        bind:value={editUsername}
+                        placeholder="Outcome Code"
+                        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded-md"
+                        on:keydown={handleKeyDown}
+                    />
+
+                    <textarea
+                        bind:value={editEmail}
+                        placeholder="Description"
+                        rows="3"
+                        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded-md"
+                    ></textarea>
+
+                    <div class="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            class="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 transition"
+                            on:click={onClose}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition"
+                        >
+                            Add
                         </button>
                     </div>
                 </form>

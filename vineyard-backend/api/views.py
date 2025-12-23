@@ -1,6 +1,7 @@
 from core.models import Course, ProgramOutcome, User
 from core.serializers import (
     HeadUserSerializer,
+    ProgramOutcomeCreateSerializer,
     ProgramOutcomeSerializer,
     StudentCreateSerializer,
     TeacherCreateSerializer,
@@ -195,3 +196,12 @@ def program_outcomes(request):
         program_outcomes = ProgramOutcome.objects.all()
         serializer = ProgramOutcomeSerializer(program_outcomes, many=True)
         return Response({"program-outcomes": serializer.data})
+    elif request.method == "POST":
+        serializer = ProgramOutcomeCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"message": "Outcome created successfully."},
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

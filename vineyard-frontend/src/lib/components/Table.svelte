@@ -86,13 +86,15 @@
                 {addLabel}
             </button>
 
-            <button
-                type="button"
-                on:click={triggerBulkUpload}
-                class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition"
-            >
-                Bulk Upload
-            </button>
+            {#if onBulkAdd}
+                <button
+                    type="button"
+                    on:click={triggerBulkUpload}
+                    class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition"
+                >
+                    Bulk Upload
+                </button>
+            {/if}
             <input
                 type="file"
                 accept=".csv,.xlsx"

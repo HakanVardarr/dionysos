@@ -113,3 +113,28 @@ class ProgramOutcomeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProgramOutcome
         fields = ["code", "description"]
+
+
+class ProgramOutcomeCreateSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=25)
+    description = serializers.CharField(max_length=500)
+
+    def validate_code(self, value):
+        qs = ProgramOutcome.objects.filter(code=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("Code already taken.")
+        return value
+
+    def create(self, validated_data):
+        return ProgramOutcome.objects.create(
+            code=validated_data["code"],
+            description=validated_data["description"],
+        )
+
+    def update(self, instance, validated_data):
+        instance.code = validated_data.get("code", instance.code)
+        instance.description = validated_data.get("description", instance.description)
+        instance.save()
+        return instance
