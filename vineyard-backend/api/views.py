@@ -1,5 +1,7 @@
 from core.models import Course, ProgramOutcome, User
 from core.serializers import (
+    CourseCreateSerializer,
+    CourseSummarySerializer,
     HeadUserSerializer,
     ProgramOutcomeCreateSerializer,
     ProgramOutcomeSerializer,
@@ -202,6 +204,27 @@ def program_outcomes(request):
             serializer.save()
             return Response(
                 {"message": "Outcome created successfully."},
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def courses(request):
+    if request.method == "GET":
+        courses = Course.objects.all()
+        serializer = CourseSummarySerializer(courses, many=True)
+        return Response({"courses": serializer.data})
+
+    elif request.method == "POST":
+        serializer = CourseCreateSerializer(
+            data=request.data, context={"request": request}
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"message": "Course created successfully"},
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -14,7 +14,7 @@
         { name: 'Teachers', href: '/dashboard/teachers' },
         { name: 'Students', href: '/dashboard/students' },
         { name: 'Courses', href: '/dashboard/courses' },
-        { name: 'Program Outcomes', href: '/dashboard/program-outcomes' },
+        { name: 'Outcomes', href: '/dashboard/program-outcomes' },
     ];
 
     onMount(async () => {
@@ -32,23 +32,20 @@
             localStorage.removeItem('access');
             localStorage.removeItem('refresh');
             goto('/login');
-        } else {
-            loading = false;
+            return;
         }
 
+        loading = false;
+
         const res = await fetch('http://localhost:8080/api/me/', {
-            method: 'GET',
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-            },
+            headers: { Authorization: `Bearer ${accessToken}` },
         });
 
-        if (!res.ok) return;
-
-        const data = await res.json();
-        username = data['username'];
-        role = data['role'];
+        if (res.ok) {
+            const data = await res.json();
+            username = data.username;
+            role = data.role;
+        }
     });
 
     function logout() {
@@ -60,28 +57,50 @@
 </script>
 
 {#if loading}
-    <p class="text-center mt-20 text-purple-500 font-medium">
-        Checking authentication...
+    <p class="text-center mt-24 text-purple-400 font-medium">
+        Checking authentication…
     </p>
 {:else}
-    <div class="flex h-screen bg-gray-900">
+    <div class="flex h-screen bg-[#0b0b10] text-gray-100">
         <aside
-            class="w-64 bg-gray-950 text-gray-300 flex flex-col px-6 py-8 gap-6 shadow-lg"
+            class="w-64 bg-[#0f0f16] border-r border-white/5
+                   flex flex-col px-5 py-6 gap-6"
         >
-            <div class="mb-6">
-                <div class="text-xl font-bold text-purple-500">{username}</div>
-                <div class="text-gray-400 text-sm">{capitalize(role)}</div>
+            <div class="flex items-center gap-3 pb-4 border-b border-white/5">
+                <div
+                    class="w-10 h-10 rounded-full bg-purple-600/20
+                           flex items-center justify-center
+                           text-purple-400 font-bold"
+                >
+                    {username.charAt(0).toUpperCase()}
+                </div>
+
+                <div>
+                    <div class="font-semibold text-white">
+                        {username}
+                    </div>
+                    <div class="text-xs text-gray-400">
+                        {capitalize(role)}
+                    </div>
+                </div>
             </div>
 
-            <nav class="flex flex-col gap-2 flex-1">
+            <nav class="flex flex-col gap-1 flex-1 pt-2">
                 {#each links as link}
                     <a
                         href={link.href}
-                        class="px-3 py-2 rounded transition hover:bg-purple-700 hover:text-white
+                        class="relative px-4 py-2 rounded-lg text-sm transition
+                            hover:bg-purple-600/10 hover:text-purple-300
                             {page.url.pathname === link.href
-                            ? 'bg-purple-700 text-white font-bold'
-                            : ''}"
+                            ? 'bg-purple-600/15 text-purple-300 font-medium'
+                            : 'text-gray-400'}"
                     >
+                        {#if page.url.pathname === link.href}
+                            <span
+                                class="absolute left-0 top-1/2 -translate-y-1/2
+                                       w-1 h-6 bg-purple-500 rounded-r"
+                            ></span>
+                        {/if}
                         {link.name}
                     </a>
                 {/each}
@@ -89,16 +108,17 @@
 
             <button
                 on:click={logout}
-                class="mt-auto bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded transition"
+                class="mt-auto w-full flex items-center justify-center
+                       gap-2 rounded-lg px-4 py-2 text-sm
+                       bg-red-500/10 text-red-400
+                       hover:bg-red-500/20 transition"
             >
                 Logout
             </button>
         </aside>
 
-        <div class="flex-1 flex flex-col">
-            <header class="w-full bg-gray-900 px-6 py-4 shadow-md"></header>
-
-            <main class="p-6 flex-1 overflow-auto text-gray-100">
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <main class="flex-1 overflow-auto p-8">
                 <slot />
             </main>
         </div>

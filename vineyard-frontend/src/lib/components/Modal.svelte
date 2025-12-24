@@ -1,222 +1,94 @@
 <script lang="ts">
-    export let errorMessage: string = '';
     export let show = false;
-    export let mode:
-        | 'add'
-        | 'edit'
-        | 'edit-outcome'
-        | 'delete'
-        | 'add-outcome' = 'edit';
-    export let data: any = null;
-    export let label: string | null = null;
-    export let editUsername = '';
-    export let editEmail = '';
-    export let onSave: () => void;
-    export let onDelete: () => void;
-    export let onAdd: () => void;
+    export let title = '';
+    export let errorMessage = '';
+    export let confirmLabel = 'Save';
+
+    export let onConfirm: () => void;
     export let onClose: () => void;
 
     function handleKeyDown(e: KeyboardEvent) {
         if (e.key === 'Enter') {
             e.preventDefault();
-            if (mode === 'add' && onAdd) onAdd();
-            else if (mode === 'add-outcome' && onAdd) onAdd();
-            else if (mode === 'edit' && onSave) onSave();
-            else if (mode === 'edit-outcome' && onSave) onSave();
-            else if (mode === 'delete' && onDelete) onDelete();
+            onConfirm?.();
+        }
+        if (e.key === 'Escape') {
+            onClose?.();
         }
     }
 </script>
 
 {#if show}
+    <!-- BACKDROP -->
     <div
-        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        class="fixed inset-0 z-50 flex items-center justify-center
+               bg-black/50 backdrop-blur-md"
         role="dialog"
         aria-modal="true"
+        tabindex="-1"
+        on:keydown={handleKeyDown}
     >
-        <div class="bg-gray-950 p-6 rounded-xl shadow-xl w-full max-w-md">
+        <!-- MODAL -->
+        <div
+            class="w-full max-w-md
+                   rounded-2xl
+                   bg-[#0f0f18]
+                   border border-white/8
+                   shadow-[0_30px_80px_rgba(0,0,0,0.6)]
+                   p-6"
+        >
+            <!-- HEADER -->
+            <div class="mb-5">
+                <h2 class="text-base font-medium text-gray-100 tracking-tight">
+                    {title}
+                </h2>
+                <div class="mt-2 h-px w-full bg-white/5"></div>
+            </div>
+
+            <!-- ERROR -->
             {#if errorMessage}
-                <p class="text-red-500 text-sm mb-3">{errorMessage}</p>
-            {/if}
-
-            {#if mode === 'add'}
-                <h2 class="text-2xl font-bold mb-4 text-purple-500">
-                    Add {label}
-                </h2>
-                <form
-                    class="flex flex-col gap-4"
-                    on:submit|preventDefault={() => onAdd?.()}
+                <div
+                    class="mb-4 rounded-lg
+                           bg-red-400/5
+                           border border-red-400/10
+                           px-3 py-2 text-xs
+                           text-red-300"
                 >
-                    <input
-                        type="text"
-                        bind:value={editUsername}
-                        placeholder="Username"
-                        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded-md"
-                        on:keydown={handleKeyDown}
-                    />
-                    <input
-                        type="email"
-                        bind:value={editEmail}
-                        placeholder="Email"
-                        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded-md"
-                        on:keydown={handleKeyDown}
-                    />
-                    <div class="flex justify-end gap-2">
-                        <button
-                            type="button"
-                            class="px-4 py-2 bg-gray-700 text-white rounded-md cursor-pointer hover:bg-gray-800 transition"
-                            on:click={onClose}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            class="px-4 py-2 bg-purple-600 text-white rounded-md cursor-pointer hover:bg-purple-700 transition"
-                        >
-                            Add
-                        </button>
-                    </div>
-                </form>
-            {:else if mode === 'edit-outcome'}
-                <h2 class="text-2xl font-bold mb-4 text-purple-500">
-                    Edit Outcome
-                </h2>
-
-                <form
-                    class="flex flex-col gap-4"
-                    on:submit|preventDefault={() => onSave?.()}
-                >
-                    <input
-                        type="text"
-                        bind:value={editUsername}
-                        placeholder="Outcome Code"
-                        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded-md"
-                        on:keydown={handleKeyDown}
-                    />
-
-                    <textarea
-                        bind:value={editEmail}
-                        placeholder="Description"
-                        rows="3"
-                        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded-md"
-                    ></textarea>
-
-                    <div class="flex justify-end gap-2">
-                        <button
-                            type="button"
-                            class="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 transition"
-                            on:click={onClose}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition"
-                        >
-                            Save
-                        </button>
-                    </div>
-                </form>
-            {:else if mode === 'edit'}
-                <h2 class="text-2xl font-bold mb-4 text-purple-500">
-                    Edit {label}
-                </h2>
-                <form
-                    class="flex flex-col gap-4"
-                    on:submit|preventDefault={() => onSave?.()}
-                >
-                    <input
-                        type="text"
-                        bind:value={editUsername}
-                        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded-md"
-                        on:keydown={handleKeyDown}
-                    />
-                    <input
-                        type="email"
-                        bind:value={editEmail}
-                        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded-md"
-                        on:keydown={handleKeyDown}
-                    />
-                    <div class="flex justify-end gap-2">
-                        <button
-                            type="button"
-                            class="px-4 py-2 bg-gray-700 text-white rounded-md cursor-pointer hover:bg-gray-800 transition"
-                            on:click={onClose}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            class="px-4 py-2 bg-purple-600 text-white rounded-md cursor-pointer hover:bg-purple-700 transition"
-                        >
-                            Save
-                        </button>
-                    </div>
-                </form>
-            {:else if mode === 'add-outcome'}
-                <h2 class="text-2xl font-bold mb-4 text-purple-500">
-                    Add Outcome
-                </h2>
-
-                <form
-                    class="flex flex-col gap-4"
-                    on:submit|preventDefault={() => onAdd?.()}
-                >
-                    <input
-                        type="text"
-                        bind:value={editUsername}
-                        placeholder="Outcome Code"
-                        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded-md"
-                        on:keydown={handleKeyDown}
-                    />
-
-                    <textarea
-                        bind:value={editEmail}
-                        placeholder="Description"
-                        rows="3"
-                        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-white rounded-md"
-                    ></textarea>
-
-                    <div class="flex justify-end gap-2">
-                        <button
-                            type="button"
-                            class="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 transition"
-                            on:click={onClose}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition"
-                        >
-                            Add
-                        </button>
-                    </div>
-                </form>
-            {:else if mode === 'delete'}
-                <h2 class="text-2xl font-bold mb-4 text-red-500">
-                    Delete {label}
-                </h2>
-                <p>
-                    Are you sure you want to delete <strong
-                        >{data.username}</strong
-                    >?
-                </p>
-                <div class="flex justify-end gap-2 mt-4">
-                    <button
-                        class="px-4 py-2 bg-gray-700 text-white rounded-md cursor-pointer hover:bg-gray-800 transition"
-                        on:click={onClose}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        class="px-4 py-2 bg-red-600 text-white rounded-md cursor-pointer hover:bg-red-700 transition"
-                        on:click={onDelete}
-                    >
-                        Delete
-                    </button>
+                    {errorMessage}
                 </div>
             {/if}
+
+            <!-- CONTENT -->
+            <div class="text-sm text-gray-300 space-y-3">
+                <slot />
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="mt-6 flex justify-end gap-2">
+                <!-- CANCEL -->
+                <button
+                    on:click={onClose}
+                    class="px-4 py-2 rounded-lg text-sm
+                           bg-white/3
+                           hover:bg-white/6
+                           text-gray-300
+                           transition"
+                >
+                    Cancel
+                </button>
+
+                <!-- CONFIRM -->
+                <button
+                    on:click={onConfirm}
+                    class="px-4 py-2 rounded-lg text-sm
+                           bg-purple-500/30
+                           hover:bg-purple-500/40
+                           text-purple-200
+                           transition"
+                >
+                    {confirmLabel}
+                </button>
+            </div>
         </div>
     </div>
 {/if}

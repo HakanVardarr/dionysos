@@ -6,22 +6,55 @@
     import Table from '$lib/components/Table.svelte';
     import type { Column, Action } from '$lib/components/Table.svelte';
 
-    let students: any[] = [];
-
-    let showModal = false;
-    let modalStudent: any = null;
-    let modalMode: 'edit' | 'delete' | 'add' = 'add';
-    let editUsername = '';
-    let editEmail = '';
-    let errorMessage = '';
-
     type Student = {
         id: number;
         username: string;
         email: string;
     };
 
+    type ModalMode = 'add' | 'edit' | 'delete';
+    type ModalState = {
+        open: boolean;
+        mode: ModalMode;
+        student: Student | null;
+        form: {
+            username: string;
+            email: string;
+        };
+        error: string;
+    };
+
+    let students: Student[] = [];
     let accessToken: string | null = null;
+
+    let modal: ModalState = {
+        open: false,
+        mode: 'add',
+        student: null,
+        form: {
+            username: '',
+            email: '',
+        },
+        error: '',
+    };
+
+    const columns: Column[] = [
+        { key: 'username', label: 'Username' },
+        { key: 'email', label: 'Email' },
+    ];
+
+    const actions: Action<Student>[] = [
+        {
+            label: 'Edit',
+            colorClass: 'text-blue-400',
+            callback: (s) => openModal('edit', s),
+        },
+        {
+            label: 'Delete',
+            colorClass: 'text-red-400',
+            callback: (s) => openModal('delete', s),
+        },
+    ];
 
     onMount(async () => {
         auth.subscribe(($auth) => (accessToken = $auth.access))();
@@ -31,47 +64,45 @@
 
     async function fetchStudents() {
         const res = await fetch('http://localhost:8080/api/students/', {
-            method: 'GET',
             headers: {
                 Authorization: `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
             },
         });
+
         if (res.ok) {
             const data = await res.json();
             students = data.students;
         }
     }
 
-    function openModal(
-        mode: 'edit' | 'delete' | 'add',
-        student: Student | null = null,
-    ) {
-        modalMode = mode;
-        modalStudent = student;
-        if (student) {
-            editUsername = student.username;
-            editEmail = student.email;
-        } else {
-            editUsername = '';
-            editEmail = '';
-        }
-        errorMessage = '';
-        showModal = true;
+    function openModal(mode: ModalMode, student: Student | null = null) {
+        modal = {
+            open: true,
+            mode,
+            student,
+            form: student
+                ? {
+                      username: student.username,
+                      email: student.email,
+                  }
+                : {
+                      username: '',
+                      email: '',
+                  },
+            error: '',
+        };
     }
 
     function closeModal() {
-        showModal = false;
-        modalStudent = null;
-        editUsername = '';
-        editEmail = '';
-        errorMessage = '';
+        modal.open = false;
     }
 
     async function addStudent() {
-        errorMessage = '';
-        if (!editUsername || !editEmail) {
-            errorMessage = 'Please fill in all fields';
+        modal.error = '';
+
+        const { username, email } = modal.form;
+        if (!username || !email) {
+            modal.error = 'Please fill in all fields';
             return;
         }
 
@@ -81,14 +112,12 @@
                 Authorization: `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                username: editUsername,
-                email: editEmail,
-            }),
+            body: JSON.stringify({ username, email }),
         });
+
         const data = await res.json();
         if (!res.ok) {
-            errorMessage =
+            modal.error =
                 data.username?.[0] ||
                 data.email?.[0] ||
                 data.detail ||
@@ -101,26 +130,23 @@
     }
 
     async function saveEdit() {
-        if (!modalStudent) return;
+        if (!modal.student) return;
 
         const res = await fetch(
-            `http://localhost:8080/api/students/${modalStudent.id}/`,
+            `http://localhost:8080/api/students/${modal.student.id}/`,
             {
                 method: 'PUT',
                 headers: {
                     Authorization: `Bearer ${accessToken}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    username: editUsername,
-                    email: editEmail,
-                }),
+                body: JSON.stringify(modal.form),
             },
         );
 
         const data = await res.json();
         if (!res.ok) {
-            errorMessage =
+            modal.error =
                 data.username?.[0] ||
                 data.email?.[0] ||
                 data.detail ||
@@ -133,19 +159,21 @@
     }
 
     async function confirmDelete() {
-        if (!modalStudent) return;
+        if (!modal.student) return;
 
         const res = await fetch(
-            `http://localhost:8080/api/students/${modalStudent.id}/`,
+            `http://localhost:8080/api/students/${modal.student.id}/`,
             {
                 method: 'DELETE',
-                headers: { Authorization: `Bearer ${accessToken}` },
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                },
             },
         );
 
         if (!res.ok) {
             const data = await res.json();
-            errorMessage = data.detail || 'Failed to delete';
+            modal.error = data.detail || 'Failed to delete';
             return;
         }
 
@@ -157,7 +185,7 @@
         const formData = new FormData();
         formData.append('file', file);
 
-        const res = await fetch(`http://localhost:8080/api/students/bulk/`, {
+        const res = await fetch('http://localhost:8080/api/students/bulk/', {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${accessToken}`,
@@ -165,61 +193,102 @@
             body: formData,
         });
 
-        if (!res.ok) {
-            const error = await res.json();
-            console.error('Upload failed:', error);
-        } else {
-            const data = await res.json();
+        if (res.ok) {
             await fetchStudents();
         }
     }
-
-    const columns: Column[] = [
-        { key: 'username', label: 'Username' },
-        { key: 'email', label: 'Email' },
-    ];
-
-    const actions: Action<Student>[] = [
-        {
-            label: 'Edit',
-            colorClass: 'text-blue-400',
-            callback: (t) => openModal('edit', t),
-        },
-        {
-            label: 'Delete',
-            colorClass: 'text-red-400',
-            callback: (t) => openModal('delete', t),
-        },
-    ];
 </script>
 
-<h1 class="text-2xl font-bold px-6">Student Management</h1>
-<p class="text-gray-400 mb-4 px-6">
-    Manage students, view their progress, and add new student accounts.
+<h1 class="text-3xl font-semibold text-white tracking-tight">
+    Student Management
+</h1>
+
+<p class="text-sm text-gray-400 mt-1 mb-6 max-w-xl">
+    Manage enrolled students, edit account details and bulk upload new users.
 </p>
 
-<Table
-    {columns}
-    {actions}
-    data={students}
-    searchEnabled={true}
-    addLabel="Add Student"
-    onAdd={() => openModal('add')}
-    onBulkAdd={addStudents}
-/>
-
-{#if showModal}
-    <Modal
-        show={showModal}
-        data={modalStudent}
-        label="Student"
-        mode={modalMode}
-        {errorMessage}
-        bind:editUsername
-        bind:editEmail
-        onSave={saveEdit}
-        onDelete={confirmDelete}
-        onAdd={addStudent}
-        onClose={closeModal}
+<div
+    class="rounded-2xl
+           bg-[#0e0e15]
+           border border-white/10
+           shadow-xl shadow-black/30
+           p-4"
+>
+    <Table
+        {columns}
+        {actions}
+        data={students}
+        searchEnabled={true}
+        addLabel="Add Student"
+        onAdd={() => openModal('add')}
+        onBulkAdd={addStudents}
     />
+</div>
+
+{#if modal.open}
+    <Modal
+        show={modal.open}
+        title={modal.mode === 'add'
+            ? 'Add Student'
+            : modal.mode === 'edit'
+              ? 'Edit Student'
+              : 'Delete Student'}
+        errorMessage={modal.error}
+        confirmLabel={modal.mode === 'delete'
+            ? 'Delete'
+            : modal.mode === 'add'
+              ? 'Add'
+              : 'Save'}
+        onConfirm={modal.mode === 'delete'
+            ? confirmDelete
+            : modal.mode === 'add'
+              ? addStudent
+              : saveEdit}
+        onClose={closeModal}
+    >
+        {#if modal.mode === 'delete'}
+            <div
+                class="rounded-lg
+                       bg-red-500/10
+                       border border-red-500/20
+                       px-4 py-3
+                       text-sm text-red-300"
+            >
+                Are you sure you want to permanently delete
+                <span class="font-semibold text-red-200">
+                    {modal.student?.username}
+                </span>
+                ?
+            </div>
+        {:else}
+            <div class="space-y-3">
+                <input
+                    bind:value={modal.form.username}
+                    placeholder="Username"
+                    class="w-full rounded-lg
+                           bg-[#0c0c12]
+                           border border-white/10
+                           px-3 py-2 text-sm text-gray-200
+                           placeholder-gray-500
+                           outline-none
+                           focus:border-purple-500/40
+                           transition"
+                />
+
+                <input
+                    bind:value={modal.form.email}
+                    type="email"
+                    placeholder="Email address"
+                    class="w-full rounded-lg
+                           bg-[#0c0c12]
+                           border border-white/10
+                           px-3 py-2 text-sm text-gray-200
+                           placeholder-gray-500
+                           outline-none
+                           focus:border-purple-500/40
+                           transition"
+                />
+            </div>
+        {/if}
+    </Modal>
 {/if}

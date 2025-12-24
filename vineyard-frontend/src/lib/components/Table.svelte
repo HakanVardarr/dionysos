@@ -18,24 +18,22 @@
     export let onRowClick: ((row: any) => void) | null = null;
 
     let fileInput: HTMLInputElement;
+    let searchTerm = '';
 
     function triggerBulkUpload() {
         fileInput.click();
     }
 
-    function handleFileChange(event: Event) {
-        const target = event.target as HTMLInputElement;
-        if (target.files && target.files.length > 0) {
-            const file = target.files[0];
-            if (onBulkAdd) onBulkAdd(file);
+    function handleFileChange(e: Event) {
+        const target = e.target as HTMLInputElement;
+        if (target.files?.length && onBulkAdd) {
+            onBulkAdd(target.files[0]);
         }
     }
 
-    let searchTerm = '';
-
     $: filteredData = data.filter((row) =>
-        columns.some((col) =>
-            String(row[col.key])
+        columns.some((c) =>
+            String(row[c.key] ?? '')
                 .toLowerCase()
                 .includes(searchTerm.toLowerCase()),
         ),
@@ -45,56 +43,66 @@
     let pageSize = 10;
 
     $: totalPages = Math.ceil(filteredData.length / pageSize);
-
     $: paginatedData = filteredData.slice(
         (currentPage - 1) * pageSize,
         currentPage * pageSize,
     );
-
-    function goToPage(page: number) {
-        if (page >= 1 && page <= totalPages) {
-            currentPage = page;
-        }
-    }
-
-    function nextPage() {
-        if (currentPage < totalPages) currentPage += 1;
-    }
-
-    function prevPage() {
-        if (currentPage > 1) currentPage -= 1;
-    }
 </script>
 
-<div class="flex flex-col p-6 gap-4">
-    {#if searchEnabled || addLabel}
-        <div class="flex justify-between items-center gap-2">
+<div class="space-y-4">
+    <!-- TOP BAR -->
+    {#if searchEnabled || addLabel || onBulkAdd}
+        <div class="flex items-center gap-3">
+            <!-- SEARCH -->
             {#if searchEnabled}
-                <input
-                    type="text"
-                    placeholder="Search..."
-                    bind:value={searchTerm}
-                    class="flex-1 px-3 py-2 rounded-md bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+                <div class="relative">
+                    <input
+                        bind:value={searchTerm}
+                        placeholder="Search"
+                        class="w-64 rounded-lg
+                               bg-[#0e0e15]
+                               border border-white/5
+                               px-4 py-2 text-sm text-gray-300
+                               placeholder-gray-500
+                               outline-none
+                               focus:border-purple-500/30
+                               focus:bg-[#11111a]
+                               transition"
+                    />
+                </div>
             {/if}
 
-            <button
-                type="button"
-                on:click={onAdd}
-                class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition"
-            >
-                {addLabel}
-            </button>
+            <!-- ACTION BUTTONS -->
+            <div class="flex gap-2 ml-auto">
+                {#if onBulkAdd}
+                    <button
+                        on:click={triggerBulkUpload}
+                        class="px-3 py-2 rounded-lg text-sm
+                               bg-white/5
+                               border border-white/10
+                               text-gray-400
+                               hover:bg-white/10
+                               transition"
+                    >
+                        Bulk upload
+                    </button>
+                {/if}
 
-            {#if onBulkAdd}
-                <button
-                    type="button"
-                    on:click={triggerBulkUpload}
-                    class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition"
-                >
-                    Bulk Upload
-                </button>
-            {/if}
+                {#if addLabel}
+                    <button
+                        on:click={onAdd}
+                        class="px-4 py-2 rounded-lg text-sm
+                               bg-purple-500/15
+                               border border-purple-500/20
+                               text-purple-300
+                               hover:bg-purple-500/25
+                               transition"
+                    >
+                        {addLabel}
+                    </button>
+                {/if}
+            </div>
+
             <input
                 type="file"
                 accept=".csv,.xlsx"
@@ -105,86 +113,107 @@
         </div>
     {/if}
 
-    <div class="overflow-x-auto rounded-lg border border-gray-700">
-        <table
-            class="min-w-full divide-y divide-gray-700 bg-gray-900 text-white"
-        >
-            <thead class="bg-purple-800">
+    <!-- TABLE -->
+    <div
+        class="rounded-xl border border-white/10
+               bg-[#0e0e15] overflow-hidden"
+    >
+        <table class="w-full text-sm text-gray-200">
+            <thead class="border-b border-white/10 bg-[#0e0e15]">
                 <tr>
                     {#each columns as col}
-                        <th class="px-6 py-3 text-left text-sm font-semibold"
-                            >{col.label}</th
+                        <th
+                            class="px-5 py-3 text-left text-xs
+                                   uppercase tracking-wide
+                                   text-gray-400"
                         >
+                            {col.label}
+                        </th>
                     {/each}
-                    {#if actions.length > 0}
-                        <th class="px-6 py-3 text-left text-sm font-semibold"
-                        ></th>
+
+                    {#if actions.length}
+                        <th
+                            class="px-5 py-3 text-right text-xs
+                                   uppercase tracking-wide
+                                   text-gray-400 w-32"
+                        >
+                        </th>
                     {/if}
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-700">
+
+            <tbody class="divide-y divide-white/5">
                 {#each paginatedData as row}
                     <tr
-                        class="hover:bg-gray-800 cursor-pointer"
+                        class="hover:bg-white/5 transition cursor-pointer"
                         on:click={() => onRowClick?.(row)}
                     >
                         {#each columns as col}
-                            <td class="px-6 py-4">{row[col.key]}</td>
+                            <td class="px-5 py-3">
+                                {row[col.key]}
+                            </td>
                         {/each}
-                        {#if actions.length > 0}
-                            <td class="px-6 py-4 flex gap-2">
-                                {#each actions as action}
-                                    <button
-                                        type="button"
-                                        class={`flex-1 text-sm ${action.colorClass ?? 'text-blue-400'}`}
-                                        on:click={(e) => {
-                                            e.stopPropagation();
-                                            action.callback(row);
-                                        }}
-                                    >
-                                        <span
-                                            class="hover:underline cursor-pointer"
-                                            >{action.label}</span
+
+                        {#if actions.length}
+                            <td class="px-5 py-3 text-right">
+                                <div class="flex justify-end gap-3">
+                                    {#each actions as action}
+                                        <button
+                                            class="text-xs font-medium
+                                                   px-2 py-1 rounded-md
+                                                   text-purple-300
+                                                   bg-purple-500/5
+                                                   border border-purple-500/10
+                                                   hover:bg-purple-500/10
+                                                   transition"
+                                            on:click={(e) => {
+                                                e.stopPropagation();
+                                                action.callback(row);
+                                            }}
                                         >
-                                    </button>
-                                {/each}
+                                            {action.label}
+                                        </button>
+                                    {/each}
+                                </div>
                             </td>
                         {/if}
                     </tr>
                 {/each}
+
+                {#if paginatedData.length === 0}
+                    <tr>
+                        <td
+                            colspan={columns.length + (actions.length ? 1 : 0)}
+                            class="px-6 py-10 text-center text-gray-500"
+                        >
+                            No results found
+                        </td>
+                    </tr>
+                {/if}
             </tbody>
         </table>
     </div>
 
+    <!-- PAGINATION -->
     {#if totalPages > 1}
-        <div class="flex justify-center items-center gap-2 mt-4">
-            <button
-                on:click={prevPage}
-                class="px-3 py-1 bg-gray-800 rounded hover:bg-gray-700 transition"
-                disabled={currentPage === 1}
-            >
-                Prev
-            </button>
+        <div class="flex items-center justify-between text-sm text-gray-400">
+            <span>
+                Page {currentPage} of {totalPages}
+            </span>
 
-            {#each Array(totalPages) as _, i}
-                <button
-                    on:click={() => goToPage(i + 1)}
-                    class="px-3 py-1 rounded hover:bg-gray-700 transition
-                           {currentPage === i + 1
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-gray-800 text-gray-200'}"
-                >
-                    {i + 1}
-                </button>
-            {/each}
-
-            <button
-                on:click={nextPage}
-                class="px-3 py-1 bg-gray-800 rounded hover:bg-gray-700 transition"
-                disabled={currentPage === totalPages}
-            >
-                Next
-            </button>
+            <div class="flex gap-1">
+                {#each Array(totalPages) as _, i}
+                    <button
+                        on:click={() => (currentPage = i + 1)}
+                        class="px-3 py-1 rounded-md transition
+                               {currentPage === i + 1
+                            ? 'bg-purple-500/30 text-purple-200'
+                            : 'hover:bg-white/10'}"
+                    >
+                        {i + 1}
+                    </button>
+                {/each}
+            </div>
         </div>
     {/if}
 </div>
