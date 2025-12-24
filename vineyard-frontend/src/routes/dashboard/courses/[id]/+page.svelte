@@ -30,11 +30,24 @@
     let loading = true;
     let error: string | null = null;
 
+    let showAssignModal = false;
+    let students: { id: number; username: string; selected: boolean }[] = [];
+    let modalError = '';
+    let userRole: string | null = null;
+
     onMount(async () => {
         auth.subscribe(($auth) => (accessToken = $auth.access))();
-        if (!accessToken) goto('/login');
+        if (!accessToken) return;
 
         try {
+            const resUser = await fetch('http://localhost:8080/api/me/', {
+                headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (resUser.ok) {
+                const data = await resUser.json();
+                userRole = data.role;
+            }
+
             const res = await fetch(
                 `http://localhost:8080/api/courses/${courseId}/`,
                 {
@@ -51,12 +64,62 @@
         }
     });
 
-    function goToEdit() {
-        goto(`/dashboard/courses/${courseId}/edit`);
+    async function loadStudents() {
+        if (!accessToken) return;
+        try {
+            const res = await fetch(
+                `http://localhost:8080/api/courses/${courseId}/students/`,
+                {
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                },
+            );
+            if (!res.ok) throw new Error('Failed to fetch students');
+            const data = await res.json();
+            students = data.students;
+        } catch (err) {
+            console.error(err);
+            modalError = 'Could not load students';
+        }
     }
 
-    function assignStudents() {
-        goto(`/dashboard/courses/${courseId}/assign-students`);
+    function openAssignModal() {
+        if (userRole !== 'head') return;
+        showAssignModal = true;
+        modalError = '';
+        loadStudents();
+    }
+
+    function closeAssignModal() {
+        showAssignModal = false;
+        modalError = '';
+    }
+
+    async function assignSelectedStudents() {
+        if (!accessToken) return;
+        const selectedIds = students.filter((s) => s.selected).map((s) => s.id);
+
+        try {
+            const res = await fetch(
+                `http://localhost:8080/api/courses/${courseId}/assign-students/`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                    body: JSON.stringify({ students: selectedIds }),
+                },
+            );
+            if (!res.ok) throw new Error('Failed to assign students');
+            showAssignModal = false;
+        } catch (err) {
+            console.error(err);
+            modalError = 'Failed to assign students';
+        }
+    }
+
+    async function editCourse() {
+        await goto(`/dashboard/courses/${courseId}/edit`);
     }
 </script>
 
@@ -81,14 +144,16 @@
                     </p>
                 </div>
                 <div class="flex gap-3">
+                    {#if userRole === 'head'}
+                        <button
+                            on:click={openAssignModal}
+                            class="px-4 py-2 bg-purple-600/20 text-purple-300 rounded-xl transition duration-200"
+                        >
+                            Students
+                        </button>
+                    {/if}
                     <button
-                        on:click={assignStudents}
-                        class="px-4 py-2 bg-purple-600/20 text-purple-300 rounded-xl transition duration-200"
-                    >
-                        Assign Students
-                    </button>
-                    <button
-                        on:click={goToEdit}
+                        on:click={editCourse}
                         class="px-4 py-2 bg-purple-600/20 text-purple-300 rounded-xl transition duration-200"
                     >
                         Edit
@@ -150,4 +215,82 @@
             </section>
         </div>
     </div>
+
+    {#if showAssignModal}
+        <div
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md"
+        >
+            <div
+                class="w-full max-w-md rounded-2xl bg-[#0f0f18] border border-white/8 shadow-[0_30px_80px_rgba(0,0,0,0.6)] p-6"
+            >
+                <div class="mb-5">
+                    <h2
+                        class="text-base font-medium text-gray-100 tracking-tight"
+                    >
+                        Students
+                    </h2>
+                    <div class="mt-2 h-px w-full bg-white/5"></div>
+                </div>
+
+                {#if modalError}
+                    <div
+                        class="mb-4 rounded-lg bg-red-400/5 border border-red-400/10 px-3 py-2 text-xs text-red-300"
+                    >
+                        {modalError}
+                    </div>
+                {/if}
+
+                <div
+                    class="max-h-64 overflow-auto space-y-2 text-sm text-gray-300"
+                >
+                    {#each students as s}
+                        <label
+                            class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition"
+                        >
+                            <div class="relative">
+                                <input
+                                    type="checkbox"
+                                    bind:checked={s.selected}
+                                    class="peer absolute w-5 h-5 opacity-0 cursor-pointer"
+                                />
+                                <div
+                                    class="w-5 h-5 rounded-full border-2 border-purple-500 flex items-center justify-center transition-colors peer-checked:bg-purple-500 peer-checked:border-purple-500"
+                                >
+                                    <svg
+                                        class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="3"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M5 13l4 4L19 7"
+                                        ></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <span class="text-gray-200">{s.username}</span>
+                        </label>
+                    {/each}
+                </div>
+
+                <div class="mt-6 flex justify-end gap-2">
+                    <button
+                        on:click={closeAssignModal}
+                        class="px-4 py-2 rounded-lg text-sm bg-white/3 hover:bg-white/6 text-gray-300 transition"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        on:click={assignSelectedStudents}
+                        class="px-4 py-2 rounded-lg text-sm bg-purple-500/30 hover:bg-purple-500/40 text-purple-200 transition"
+                    >
+                        Assign
+                    </button>
+                </div>
+            </div>
+        </div>
+    {/if}
 {/if}

@@ -10,13 +10,15 @@
     let role = '';
     let loading = true;
 
-    const links = [
+    const allLinks = [
         { name: 'Teachers', href: '/dashboard/teachers' },
         { name: 'Students', href: '/dashboard/students' },
         { name: 'Courses', href: '/dashboard/courses' },
         { name: 'Outcomes', href: '/dashboard/program-outcomes' },
+        { name: 'Reports', href: '/dashboard/reports' },
     ];
 
+    let links: any[] = [];
     onMount(async () => {
         let accessToken: string | null = null;
         auth.subscribe(($auth) => (accessToken = $auth.access))();
@@ -35,8 +37,6 @@
             return;
         }
 
-        loading = false;
-
         const res = await fetch('http://localhost:8080/api/me/', {
             headers: { Authorization: `Bearer ${accessToken}` },
         });
@@ -45,7 +45,16 @@
             const data = await res.json();
             username = data.username;
             role = data.role;
+
+            if (role === 'head') links = allLinks;
+            else if (role === 'teacher')
+                links = allLinks.filter(
+                    (l) => l.name === 'Courses' || l.name === 'Reports',
+                );
+            else links = [];
         }
+
+        loading = false;
     });
 
     function logout() {

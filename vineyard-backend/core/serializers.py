@@ -11,6 +11,8 @@ from django.contrib.auth.hashers import make_password
 from django.core.validators import validate_email
 from rest_framework import serializers
 
+# -------------------- USER SERIALIZERS --------------------
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -117,6 +119,9 @@ class HeadUserSerializer(serializers.Serializer):
         return user
 
 
+# -------------------- PROGRAM OUTCOMES --------------------
+
+
 class ProgramOutcomeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProgramOutcome
@@ -149,18 +154,27 @@ class ProgramOutcomeCreateSerializer(serializers.Serializer):
 
 
 class ProgramLearningOutcomeSerializer(serializers.Serializer):
-    code = serializers.CharField(max_length=10)
+    code = serializers.CharField(source="program_outcome.code")
+    description = serializers.CharField(source="program_outcome.description")
     weight = serializers.IntegerField(min_value=1, max_value=5)
 
 
+# -------------------- LEARNING OUTCOMES --------------------
+
+
 class LearningOutcomeSerializer(serializers.Serializer):
-    code = serializers.CharField(max_length=10)
+    code = serializers.CharField()
     description = serializers.CharField()
-    program_outcomes = ProgramLearningOutcomeSerializer(many=True)
+    program_outcomes = ProgramLearningOutcomeSerializer(
+        many=True, source="programlearningoutcome_set"
+    )
+
+
+# -------------------- ASSESSMENTS --------------------
 
 
 class AssessmentLearningOutcomeSerializer(serializers.Serializer):
-    code = serializers.CharField(max_length=20)
+    code = serializers.CharField(source="learning_outcome.code")
     weight = serializers.IntegerField(min_value=1, max_value=5)
 
 
@@ -169,6 +183,9 @@ class AssessmentSerializer(serializers.Serializer):
         choices=[("midterm", "Midterm"), ("project", "Project"), ("final", "Final")]
     )
     learning_outcomes = AssessmentLearningOutcomeSerializer(many=True)
+
+
+# -------------------- COURSE SERIALIZERS --------------------
 
 
 class CourseSummarySerializer(serializers.ModelSerializer):
@@ -200,8 +217,8 @@ class CourseSummarySerializer(serializers.ModelSerializer):
 
 
 class CourseCreateSerializer(serializers.Serializer):
-    course_code = serializers.CharField(max_length=10)
-    course_name = serializers.CharField(max_length=100)
+    course_code = serializers.CharField(max_length=10, source="code")
+    course_name = serializers.CharField(max_length=100, source="name")
     learning_outcomes = LearningOutcomeSerializer(many=True)
     assessments = AssessmentSerializer(many=True, required=False)
 
@@ -211,34 +228,31 @@ class CourseCreateSerializer(serializers.Serializer):
         assessments_data = validated_data.pop("assessments", [])
 
         course = Course.objects.create(
-            code=validated_data["course_code"],
-            name=validated_data["course_name"],
+            **validated_data,  # code ve name
             created_by=user,
         )
 
-        lo_objects = []
+        # Learning Outcomes
         for lo_data in learning_outcomes_data:
-            program_outcomes_data = lo_data.pop("program_outcomes", [])
+            program_outcomes_data = lo_data.pop("programlearningoutcome_set", [])
             lo = LearningOutcome.objects.create(
                 code=lo_data["code"],
                 description=lo_data["description"],
                 course=course,
                 created_by=user,
             )
-
             for po_data in program_outcomes_data:
                 try:
-                    po = ProgramOutcome.objects.get(code=po_data["code"])
+                    po = ProgramOutcome.objects.get(
+                        code=po_data["program_outcome"]["code"]
+                    )
                 except ProgramOutcome.DoesNotExist:
-                    continue  # veya hata fırlatabilirsiniz
+                    continue
                 ProgramLearningOutcome.objects.create(
-                    learning_outcome=lo,
-                    program_outcome=po,
-                    weight=po_data["weight"],
+                    learning_outcome=lo, program_outcome=po, weight=po_data["weight"]
                 )
 
-            lo_objects.append(lo)
-
+        # Assessments
         for a_data in assessments_data:
             assessment = Assesment.objects.create(
                 name=a_data["assessment_type"],
@@ -246,23 +260,89 @@ class CourseCreateSerializer(serializers.Serializer):
                 created_by=user,
             )
             for lo_info in a_data["learning_outcomes"]:
-                lo_code = lo_info["code"]
-                weight = lo_info["weight"]
                 try:
-                    lo = LearningOutcome.objects.get(code=lo_code, course=course)
+                    lo = LearningOutcome.objects.get(
+                        code=lo_info["learning_outcome"]["code"], course=course
+                    )
                 except LearningOutcome.DoesNotExist:
                     continue
                 AssessmentLearningOutcome.objects.create(
-                    assesment=assessment, learning_outcome=lo, weight=weight
+                    assesment=assessment, learning_outcome=lo, weight=lo_info["weight"]
                 )
 
         return course
+
+    def update(self, instance, validated_data):
+        user = self.context["request"].user
+        learning_outcomes_data = validated_data.pop("learning_outcomes", [])
+        assessments_data = validated_data.pop("assessments", [])
+
+        instance.code = validated_data.get("code", instance.code)
+        instance.name = validated_data.get("name", instance.name)
+        instance.save()
+
+        # Learning Outcomes
+        incoming_lo_codes = [lo_data["code"] for lo_data in learning_outcomes_data]
+        for lo in instance.learning_outcomes.all():
+            if lo.code not in incoming_lo_codes:
+                lo.delete()
+
+        for lo_data in learning_outcomes_data:
+            program_outcomes_data = lo_data.pop("programlearningoutcome_set", [])
+            lo, _ = LearningOutcome.objects.update_or_create(
+                code=lo_data["code"],
+                course=instance,
+                defaults={"description": lo_data["description"], "created_by": user},
+            )
+            ProgramLearningOutcome.objects.filter(learning_outcome=lo).delete()
+            for po_data in program_outcomes_data:
+                try:
+                    po = ProgramOutcome.objects.get(
+                        code=po_data["program_outcome"]["code"]
+                    )
+                except ProgramOutcome.DoesNotExist:
+                    continue
+                ProgramLearningOutcome.objects.create(
+                    learning_outcome=lo, program_outcome=po, weight=po_data["weight"]
+                )
+
+        # Assessments
+        existing_assessments = {a.name: a for a in instance.assesments.all()}
+        for a_data in assessments_data:
+            a_name = a_data["assessment_type"]
+            assessment = existing_assessments.pop(a_name, None)
+            if not assessment:
+                assessment = Assesment.objects.create(
+                    name=a_name, course=instance, created_by=user
+                )
+            else:
+                assessment.save()
+
+            AssessmentLearningOutcome.objects.filter(assesment=assessment).delete()
+            for lo_info in a_data["learning_outcomes"]:
+                try:
+                    lo = LearningOutcome.objects.get(
+                        code=lo_info["learning_outcome"]["code"], course=instance
+                    )
+                except LearningOutcome.DoesNotExist:
+                    continue
+                AssessmentLearningOutcome.objects.create(
+                    assesment=assessment, learning_outcome=lo, weight=lo_info["weight"]
+                )
+
+        for remaining in existing_assessments.values():
+            remaining.delete()
+
+        return instance
 
 
 class UserDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "username", "email", "role"]
+
+
+# -------------------- DETAIL SERIALIZERS --------------------
 
 
 class ProgramLearningOutcomeDetailSerializer(serializers.ModelSerializer):

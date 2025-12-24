@@ -2,8 +2,6 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-# Create your models here.
-
 
 class User(AbstractUser):
     ROLE_CHOICES = (
@@ -13,6 +11,12 @@ class User(AbstractUser):
     )
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    courses = models.ManyToManyField(
+        "Course",
+        related_name="students",
+        blank=True,
+        limit_choices_to={"role": "student"},
+    )
 
 
 class Course(models.Model):

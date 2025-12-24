@@ -37,21 +37,27 @@
     }
 </script>
 
-<div class="min-h-screen flex items-center justify-center bg-gray-900">
-    <div class="bg-gray-950 p-10 rounded-2xl shadow-xl w-full max-w-md">
-        <h1 class="text-3xl font-bold mb-6 text-center text-purple-500">
-            Login
+<div class="min-h-screen flex items-center justify-center bg-[#0b0b10]">
+    <div
+        class="bg-[#0f0f16] p-10 rounded-2xl shadow-lg w-full max-w-md border border-white/5"
+    >
+        <h1
+            class="text-3xl font-extrabold mb-6 text-center text-purple-400 tracking-wide"
+        >
+            Dionysos Login
         </h1>
 
         {#if errorMessage}
-            <p class="text-red-500 text-sm mb-4 text-center">{errorMessage}</p>
+            <p class="text-red-500 text-sm mb-4 text-center font-medium">
+                {errorMessage}
+            </p>
         {/if}
 
         <form on:submit|preventDefault={login} class="space-y-6">
             <div>
                 <label
                     for="username"
-                    class="block text-sm font-medium mb-1 text-gray-300"
+                    class="block text-sm font-medium mb-1 text-gray-400"
                 >
                     Username
                 </label>
@@ -60,7 +66,7 @@
                     type="text"
                     placeholder="Username"
                     bind:value={username}
-                    class="w-full px-4 py-2 bg-gray-800 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+                    class="w-full px-4 py-2 bg-[#0b0b10] border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
                     required
                 />
             </div>
@@ -68,7 +74,7 @@
             <div>
                 <label
                     for="password"
-                    class="block text-sm font-medium mb-1 text-gray-300"
+                    class="block text-sm font-medium mb-1 text-gray-400"
                 >
                     Password
                 </label>
@@ -77,21 +83,21 @@
                     type="password"
                     placeholder="Password"
                     bind:value={password}
-                    class="w-full px-4 py-2 bg-gray-800 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+                    class="w-full px-4 py-2 bg-[#0b0b10] border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
                     required
                 />
             </div>
 
             <button
                 type="submit"
-                class="w-full py-2 px-4 bg-purple-600 text-white font-semibold rounded-md hover:bg-purple-700 transition-colors"
+                class="w-full py-2 px-4 bg-purple-600/20 text-purple-300 font-semibold rounded-lg hover:bg-purple-600/30 transition"
             >
                 Login
             </button>
         </form>
 
         <p class="text-gray-400 text-sm mt-4 text-center">
-            Welcome to Dionysos
+            Welcome back! Please enter your credentials.
         </p>
     </div>
 </div>

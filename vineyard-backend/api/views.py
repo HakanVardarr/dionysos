@@ -193,7 +193,7 @@ def bulk_upload_students(request):
 
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated])
 def program_outcomes(request):
     if request.method == "GET":
         program_outcomes = ProgramOutcome.objects.all()
@@ -211,11 +211,21 @@ def program_outcomes(request):
 
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated])
 def courses(request):
+    user = request.user
     if request.method == "GET":
-        courses = Course.objects.all()
-        serializer = CourseSummarySerializer(courses, many=True)
+        if user.role == "head":
+            courses_qs = Course.objects.all()
+        elif user.role == "teacher":
+            courses_qs = Course.objects.filter(created_by=user)
+        else:
+            return Response(
+                {"detail": "You do not have permission to view courses."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = CourseSummarySerializer(courses_qs, many=True)
         return Response({"courses": serializer.data})
 
     elif request.method == "POST":
@@ -235,18 +245,7 @@ def head_or_teacher_required(user):
     return user.role in ["head", "teacher"]
 
 
-from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-
-
-# Custom decorator/permission
-def head_or_teacher_required(user):
-    return user.role in ["head", "teacher"]
-
-
-@api_view(["GET", "PUT"])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def course_detail(request, course_id):
     if not head_or_teacher_required(request.user):
@@ -260,6 +259,96 @@ def course_detail(request, course_id):
         return Response(
             {"detail": "Course not found"}, status=status.HTTP_404_NOT_FOUND
         )
-    if request.method == "GET":
-        serializer = CourseDetailSerializer(course, context={"request": request})
-        return Response(serializer.data)
+
+    serializer = CourseDetailSerializer(course, context={"request": request})
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def filter_students_by_courses(request, course_id):
+    if not head_or_teacher_required(request.user):
+        return Response(
+            {"detail": "You do not have permission to access this course."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    try:
+        course = Course.objects.get(id=course_id)
+    except Course.DoesNotExist:
+        return Response(
+            {"detail": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+        )
+
+    students = User.objects.filter(role="student")
+    data = [
+        {
+            "id": student.id,
+            "username": student.username,
+            "email": student.email,
+            "selected": course.students.filter(id=student.id).exists(),
+        }
+        for student in students
+    ]
+
+    return Response({"students": data}, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def assign_students(request, course_id):
+    if not head_or_teacher_required(request.user):
+        return Response(
+            {"detail": "You do not have permission to assign students."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    try:
+        course = Course.objects.get(id=course_id)
+    except Course.DoesNotExist:
+        return Response(
+            {"detail": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+        )
+
+    student_ids = request.data.get("students", [])
+    if not isinstance(student_ids, list):
+        return Response(
+            {"detail": "student_ids must be a list of IDs."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    students = User.objects.filter(id__in=student_ids, role="student")
+    course.students.set(students)
+
+    return Response(
+        {"detail": f"{students.count()} students assigned to {course.name}."},
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+def update_course(request, course_id):
+    if not head_or_teacher_required(request.user):
+        return Response(
+            {"detail": "You do not have permission to update this course."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    try:
+        course = Course.objects.get(id=course_id)
+    except Course.DoesNotExist:
+        return Response(
+            {"detail": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+        )
+
+    serializer = CourseCreateSerializer(
+        course, data=request.data, partial=True, context={"request": request}
+    )
+    if serializer.is_valid():
+        serializer.save()
+        return Response(
+            {"message": "Course updated successfully", "course": serializer.data}
+        )
+    else:
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
