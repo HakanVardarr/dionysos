@@ -257,3 +257,65 @@ class CourseCreateSerializer(serializers.Serializer):
                 )
 
         return course
+
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "email", "role"]
+
+
+class ProgramLearningOutcomeDetailSerializer(serializers.ModelSerializer):
+    program_outcome = serializers.CharField(source="program_outcome.code")
+    weight = serializers.IntegerField()
+
+    class Meta:
+        model = ProgramLearningOutcome
+        fields = ["program_outcome", "weight"]
+
+
+class LearningOutcomeDetailSerializer(serializers.ModelSerializer):
+    program_outcomes = ProgramLearningOutcomeDetailSerializer(
+        many=True, source="programlearningoutcome_set"
+    )
+
+    class Meta:
+        model = LearningOutcome
+        fields = ["code", "description", "program_outcomes"]
+
+
+class AssessmentLearningOutcomeDetailSerializer(serializers.ModelSerializer):
+    learning_outcome = serializers.CharField(source="learning_outcome.code")
+    weight = serializers.IntegerField()
+
+    class Meta:
+        model = AssessmentLearningOutcome
+        fields = ["learning_outcome", "weight"]
+
+
+class AssessmentDetailSerializer(serializers.ModelSerializer):
+    learning_outcomes = AssessmentLearningOutcomeDetailSerializer(
+        many=True, source="assessmentlearningoutcome_set"
+    )
+    assessment_type = serializers.CharField(source="name")
+
+    class Meta:
+        model = Assesment
+        fields = ["assessment_type", "learning_outcomes"]
+
+
+class CourseDetailSerializer(serializers.ModelSerializer):
+    created_by = UserDetailSerializer()
+    learning_outcomes = LearningOutcomeDetailSerializer(many=True)
+    assessments = AssessmentDetailSerializer(many=True, source="assesments")
+
+    class Meta:
+        model = Course
+        fields = [
+            "id",
+            "code",
+            "name",
+            "created_by",
+            "learning_outcomes",
+            "assessments",
+        ]

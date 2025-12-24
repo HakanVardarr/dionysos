@@ -19,6 +19,7 @@ urlpatterns = [
     path("students/<int:id>/", views.student_detail, name="student_detail"),
     path("program-outcomes/", views.program_outcomes, name="program_outcomes"),
     path("courses/", views.courses, name="courses"),
+    path("courses/<int:course_id>/", views.course_detail, name="course_detail"),
     path("token/login/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("token/verify/", TokenVerifyView.as_view(), name="token_verify"),

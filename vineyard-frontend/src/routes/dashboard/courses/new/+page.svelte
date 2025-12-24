@@ -3,8 +3,6 @@
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
 
-    /* ================= TYPES ================= */
-
     type ProgramOutcome = {
         code: string;
         weight: number;
@@ -25,10 +23,7 @@
         learning_outcomes: AssessmentLearningOutcome[];
     };
 
-    /* ================= STATE ================= */
-
     let accessToken: string | null = null;
-
     let courseCode = '';
     let courseName = '';
 
@@ -36,8 +31,6 @@
     let assessments: Assessment[] = [];
 
     let programOutcomes: { code: string; description: string }[] = [];
-
-    /* ================= INIT ================= */
 
     onMount(async () => {
         auth.subscribe((a) => (accessToken = a.access))();
@@ -52,7 +45,6 @@
             programOutcomes = data['program-outcomes'];
         }
 
-        /* ✅ minimum 1 LO + 1 Assessment */
         learningOutcomes = [
             {
                 description: '',
@@ -69,8 +61,6 @@
             },
         ];
     });
-
-    /* ================= ACTIONS ================= */
 
     function addLearningOutcome() {
         learningOutcomes = [
@@ -158,7 +148,7 @@
         });
 
         if (res.ok) {
-            goto('/dashboard');
+            goto('/dashboard/courses');
         } else {
             alert('Failed to create course');
         }

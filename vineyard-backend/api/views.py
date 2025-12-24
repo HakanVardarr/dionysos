@@ -1,6 +1,7 @@
 from core.models import Course, ProgramOutcome, User
 from core.serializers import (
     CourseCreateSerializer,
+    CourseDetailSerializer,
     CourseSummarySerializer,
     HeadUserSerializer,
     ProgramOutcomeCreateSerializer,
@@ -228,3 +229,37 @@ def courses(request):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def head_or_teacher_required(user):
+    return user.role in ["head", "teacher"]
+
+
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+
+# Custom decorator/permission
+def head_or_teacher_required(user):
+    return user.role in ["head", "teacher"]
+
+
+@api_view(["GET", "PUT"])
+@permission_classes([IsAuthenticated])
+def course_detail(request, course_id):
+    if not head_or_teacher_required(request.user):
+        return Response(
+            {"detail": "You do not have permission to access this course."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    try:
+        course = Course.objects.get(id=course_id)
+    except Course.DoesNotExist:
+        return Response(
+            {"detail": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+        )
+    if request.method == "GET":
+        serializer = CourseDetailSerializer(course, context={"request": request})
+        return Response(serializer.data)
