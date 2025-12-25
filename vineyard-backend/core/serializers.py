@@ -155,7 +155,6 @@ class ProgramOutcomeCreateSerializer(serializers.Serializer):
 
 class ProgramLearningOutcomeSerializer(serializers.Serializer):
     code = serializers.CharField(source="program_outcome.code")
-    description = serializers.CharField(source="program_outcome.description")
     weight = serializers.IntegerField(min_value=1, max_value=5)
 
 
@@ -180,7 +179,12 @@ class AssessmentLearningOutcomeSerializer(serializers.Serializer):
 
 class AssessmentSerializer(serializers.Serializer):
     assessment_type = serializers.ChoiceField(
-        choices=[("midterm", "Midterm"), ("project", "Project"), ("final", "Final")]
+        choices=[
+            ("midterm", "Midterm"),
+            ("project", "Project"),
+            ("final", "Final"),
+            ("assignment", "Assignment"),
+        ]
     )
     learning_outcomes = AssessmentLearningOutcomeSerializer(many=True)
 

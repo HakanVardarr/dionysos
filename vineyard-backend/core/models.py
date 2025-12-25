@@ -78,6 +78,7 @@ class Assesment(models.Model):
         ("midterm", "Midterm"),
         ("project", "Project"),
         ("final", "Final"),
+        ("assingment", "Assignment"),
     ]
     name = models.CharField(max_length=20, choices=ASSESMENT_TYPES, default="midterm")
     learning_outcomes = models.ManyToManyField(

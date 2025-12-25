@@ -1,15 +1,10 @@
 from core.models import Course, ProgramOutcome, User
-from core.serializers import (
-    CourseCreateSerializer,
-    CourseDetailSerializer,
-    CourseSummarySerializer,
-    HeadUserSerializer,
-    ProgramOutcomeCreateSerializer,
-    ProgramOutcomeSerializer,
-    StudentCreateSerializer,
-    TeacherCreateSerializer,
-    UserSerializer,
-)
+from core.serializers import (CourseCreateSerializer, CourseDetailSerializer,
+                              CourseSummarySerializer, HeadUserSerializer,
+                              ProgramOutcomeCreateSerializer,
+                              ProgramOutcomeSerializer,
+                              StudentCreateSerializer, TeacherCreateSerializer,
+                              UserSerializer)
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
@@ -352,3 +347,55 @@ def update_course(request, course_id):
         )
     else:
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+import json
+
+from celery.result import AsyncResult
+from core.tasks import generate
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def start_generate_task(request):
+    uploaded_file = request.FILES.get("file")
+    if not uploaded_file:
+        return Response({"error": "No file provided"}, status=400)
+
+    program_outcomes_raw = request.data.get("program_outcomes")
+    if not program_outcomes_raw:
+        return Response({"error": "No program outcomes provided"}, status=400)
+
+    try:
+        program_outcomes_list = json.loads(program_outcomes_raw)
+    except json.JSONDecodeError:
+        return Response({"error": "Invalid JSON for program_outcomes"}, status=400)
+
+    program_outcomes_str = "\n".join(
+        f"{po['code']}: {po['description']}" for po in program_outcomes_list
+    )
+
+    file_bytes = uploaded_file.read()
+    filename = uploaded_file.name
+
+    task = generate.delay(file_bytes, filename, program_outcomes_str)
+
+    return Response(
+        {
+            "task_id": task.id,
+        },
+        status=202,
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_generate_task_result(request, task_id):
+    """
+    Task durumunu kontrol eder ve tamamlandıysa sonucu döner
+    """
+    task = AsyncResult(task_id)
+    if task.state == "SUCCESS":
+        return Response({"status": "SUCCESS", "result": task.result})
+    else:
+        return Response({"status": task.state})

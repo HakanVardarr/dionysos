@@ -31,6 +31,12 @@ urlpatterns = [
         views.filter_students_by_courses,
         name="filter_students_by_courses",
     ),
+    path("tasks/generate/", views.start_generate_task, name="start_generate_task"),
+    path(
+        "tasks/generate/<task_id>/",
+        views.get_generate_task_result,
+        name="get_generate_task_result",
+    ),
     path("token/login/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("token/verify/", TokenVerifyView.as_view(), name="token_verify"),

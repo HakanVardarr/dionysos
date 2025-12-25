@@ -295,6 +295,7 @@
                         <option value="midterm">Midterm</option>
                         <option value="project">Project</option>
                         <option value="final">Final</option>
+                        <option value="assignment">Assignment</option>
                     </select>
 
                     {#each a.learning_outcomes as lo}
