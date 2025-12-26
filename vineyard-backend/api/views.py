@@ -383,6 +383,38 @@ def update_course(request, course_id):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_course(request, course_id):
+    user = request.user
+    try:
+        course = Course.objects.get(id=course_id)
+    except Course.DoesNotExist:
+        return Response(
+            {"detail": "Course not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    if user.role == "head":
+        pass
+    elif user.role == "teacher":
+        if course.created_by != user:
+            return Response(
+                {"detail": "You can only delete courses you created."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+    else:
+        return Response(
+            {"detail": "You do not have permission to delete this course."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    course.delete()
+    return Response(
+        {"message": "Course deleted successfully"},
+        status=status.HTTP_204_NO_CONTENT,
+    )
+
+
 import json
 
 from celery.result import AsyncResult

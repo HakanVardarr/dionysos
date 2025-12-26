@@ -20,8 +20,8 @@ urlpatterns = [
     path("program-outcomes/", views.program_outcomes, name="program_outcomes"),
     path(
         "program-outcomes/<int:outcome_id>/",
-        views.program_outcome_update,
-        name="program_outcomes",
+        views.program_outcome_detail,
+        name="program_outcomes_detail",
     ),
     path("courses/", views.courses, name="courses"),
     path("courses/<int:course_id>/", views.course_detail, name="course_detail"),
@@ -31,6 +31,7 @@ urlpatterns = [
         views.assign_students,
         name="assign_students",
     ),
+    path("courses/<int:course_id>/delete/", views.delete_course, name="delete_course"),
     path(
         "courses/<int:course_id>/students/",
         views.filter_students_by_courses,

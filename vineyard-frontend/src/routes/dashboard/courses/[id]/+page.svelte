@@ -121,6 +121,34 @@
     async function editCourse() {
         await goto(`/dashboard/courses/${courseId}/edit`);
     }
+
+    async function deleteCourse() {
+        if (!accessToken) return;
+
+        const confirmed = confirm(
+            'Are you sure you want to delete this course? This action cannot be undone.',
+        );
+        if (!confirmed) return;
+
+        try {
+            const res = await fetch(
+                `http://localhost:8080/api/courses/${courseId}/delete/`,
+                {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                },
+            );
+
+            if (!res.ok) throw new Error('Failed to delete course');
+
+            await goto('/dashboard/courses');
+        } catch (err) {
+            console.error(err);
+            alert('Failed to delete course');
+        }
+    }
 </script>
 
 {#if loading}
@@ -152,12 +180,22 @@
                             Students
                         </button>
                     {/if}
+
                     <button
                         on:click={editCourse}
                         class="px-4 py-2 bg-purple-600/20 text-purple-300 rounded-xl transition duration-200"
                     >
                         Edit
                     </button>
+
+                    {#if userRole === 'head' || userRole === 'teacher'}
+                        <button
+                            on:click={deleteCourse}
+                            class="px-4 py-2 bg-red-500/20 text-red-300 rounded-xl hover:bg-red-500/30 transition duration-200"
+                        >
+                            Delete
+                        </button>
+                    {/if}
                 </div>
             </div>
 
