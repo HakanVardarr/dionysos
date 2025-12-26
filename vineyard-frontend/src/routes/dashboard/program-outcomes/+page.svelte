@@ -117,6 +117,7 @@
 
     async function saveEdit() {
         if (!modal.outcome) return;
+        console.log(modal);
 
         const res = await fetch(
             `http://localhost:8080/api/program-outcomes/${modal.outcome.id}/`,

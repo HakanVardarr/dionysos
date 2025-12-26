@@ -18,6 +18,11 @@ urlpatterns = [
     path("students/bulk/", views.bulk_upload_students, name="students_bulk"),
     path("students/<int:id>/", views.student_detail, name="student_detail"),
     path("program-outcomes/", views.program_outcomes, name="program_outcomes"),
+    path(
+        "program-outcomes/<int:outcome_id>/",
+        views.program_outcome_update,
+        name="program_outcomes",
+    ),
     path("courses/", views.courses, name="courses"),
     path("courses/<int:course_id>/", views.course_detail, name="course_detail"),
     path("courses/<int:course_id>/edit/", views.update_course, name="update_course"),

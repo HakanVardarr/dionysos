@@ -125,7 +125,7 @@ class HeadUserSerializer(serializers.Serializer):
 class ProgramOutcomeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProgramOutcome
-        fields = ["code", "description"]
+        fields = ["id", "code", "description"]
 
 
 class ProgramOutcomeCreateSerializer(serializers.Serializer):

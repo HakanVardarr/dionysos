@@ -1,10 +1,15 @@
 from core.models import Course, ProgramOutcome, User
-from core.serializers import (CourseCreateSerializer, CourseDetailSerializer,
-                              CourseSummarySerializer, HeadUserSerializer,
-                              ProgramOutcomeCreateSerializer,
-                              ProgramOutcomeSerializer,
-                              StudentCreateSerializer, TeacherCreateSerializer,
-                              UserSerializer)
+from core.serializers import (
+    CourseCreateSerializer,
+    CourseDetailSerializer,
+    CourseSummarySerializer,
+    HeadUserSerializer,
+    ProgramOutcomeCreateSerializer,
+    ProgramOutcomeSerializer,
+    StudentCreateSerializer,
+    TeacherCreateSerializer,
+    UserSerializer,
+)
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
@@ -203,6 +208,35 @@ def program_outcomes(request):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["PUT", "DELETE"])
+@permission_classes([IsAuthenticated])
+def program_outcome_detail(request, outcome_id):
+    try:
+        program_outcome = ProgramOutcome.objects.get(id=outcome_id)
+    except ProgramOutcome.DoesNotExist:
+        return Response(
+            {"detail": "Program Outcome not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if request.method == "PUT":
+        serializer = ProgramOutcomeCreateSerializer(program_outcome, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"message": "Outcome updated successfully."},
+                status=status.HTTP_200_OK,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    if request.method == "DELETE":
+        program_outcome.delete()
+        return Response(
+            {"message": "Outcome deleted successfully."},
+            status=status.HTTP_204_NO_CONTENT,
+        )
 
 
 @api_view(["GET", "POST"])
