@@ -110,3 +110,23 @@ class AssessmentLearningOutcome(models.Model):
         default=1,
         help_text="Weight from 1 (lowest) to 5 (highest)",
     )
+
+
+class StudentAssessmentScore(models.Model):
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        limit_choices_to={"role": "student"},
+    )
+    assesment = models.ForeignKey(
+        Assesment,
+        on_delete=models.CASCADE,
+        related_name="student_scores",
+    )
+    score = models.FloatField()
+
+    class Meta:
+        unique_together = ("student", "assesment")
+
+    def __str__(self):
+        return f"{self.student.username} - {self.assesment.name}: {self.score}"

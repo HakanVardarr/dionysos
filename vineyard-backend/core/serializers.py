@@ -5,6 +5,7 @@ from core.models import (
     LearningOutcome,
     ProgramLearningOutcome,
     ProgramOutcome,
+    StudentAssessmentScore,
     User,
 )
 from django.contrib.auth.hashers import make_password
@@ -385,7 +386,7 @@ class AssessmentDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Assesment
-        fields = ["assessment_type", "learning_outcomes"]
+        fields = ["id", "assessment_type", "learning_outcomes"]
 
 
 class CourseDetailSerializer(serializers.ModelSerializer):
@@ -403,3 +404,9 @@ class CourseDetailSerializer(serializers.ModelSerializer):
             "learning_outcomes",
             "assessments",
         ]
+
+
+class StudentAssessmentScoreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentAssessmentScore
+        fields = ["id", "student", "assesment", "score"]

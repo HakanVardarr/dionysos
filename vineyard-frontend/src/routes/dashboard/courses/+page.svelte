@@ -2,6 +2,7 @@
     import { auth } from '$lib/stores/auth';
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
+    import { gotoIfStudent } from '$lib/auth';
 
     type Course = {
         id: number;
@@ -25,6 +26,8 @@
         const res = await fetch('http://localhost:8080/api/courses/', {
             headers: { Authorization: `Bearer ${accessToken}` },
         });
+
+        gotoIfStudent(accessToken!, '/dashboard/');
 
         if (res.ok) {
             const data = await res.json();

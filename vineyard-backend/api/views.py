@@ -1,4 +1,4 @@
-from core.models import Course, ProgramOutcome, User
+from core.models import Course, ProgramOutcome, StudentAssessmentScore, User
 from core.serializers import (
     CourseCreateSerializer,
     CourseDetailSerializer,
@@ -465,3 +465,89 @@ def get_generate_task_result(request, task_id):
         return Response({"status": "SUCCESS", "result": task.result})
     else:
         return Response({"status": task.state})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def evaluate_course(request, course_id):
+    try:
+        course = Course.objects.get(id=course_id)
+    except Course.DoesNotExist:
+        return Response({"detail": "Course not found"}, status=404)
+
+    grades = request.data.get("grades")
+    if not isinstance(grades, dict):
+        return Response({"detail": "grades must be an object"}, status=400)
+
+    assessments = {a.id: a for a in course.assesments.all()}
+
+    saved = []
+    errors = []
+
+    for student_no, grade_map in grades.items():
+        try:
+            student = User.objects.get(username=student_no, role="student")
+        except User.DoesNotExist:
+            errors.append(f"{student_no}: student not found")
+            continue
+
+        if not isinstance(grade_map, dict):
+            errors.append(f"{student_no}: grades must be an object")
+            continue
+
+        for assessment_id, score in grade_map.items():
+            try:
+                assessment_id = int(assessment_id)
+            except (TypeError, ValueError):
+                errors.append(f"{student_no}: invalid assessment id")
+                continue
+
+            assesment = assessments.get(assessment_id)
+            if not assesment:
+                errors.append(f"{student_no}: assessment {assessment_id} not in course")
+                continue
+
+            StudentAssessmentScore.objects.update_or_create(
+                student=student,
+                assesment=assesment,
+                defaults={"score": score},
+            )
+
+            saved.append(
+                {
+                    "student": student_no,
+                    "assessment_id": assessment_id,
+                    "score": score,
+                }
+            )
+
+    return Response(
+        {
+            "saved": saved,
+            "errors": errors,
+        }
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def course_existing_grades(request, course_id):
+    try:
+        course = Course.objects.get(id=course_id)
+    except Course.DoesNotExist:
+        return Response({"detail": "Course not found"}, status=404)
+
+    scores = StudentAssessmentScore.objects.filter(
+        assesment__course=course
+    ).select_related("student", "assesment")
+
+    result = {}
+
+    for s in scores:
+        student_key = s.student.username
+        if student_key not in result:
+            result[student_key] = {}
+
+        result[student_key][s.assesment.id] = s.score
+
+    return Response(result)

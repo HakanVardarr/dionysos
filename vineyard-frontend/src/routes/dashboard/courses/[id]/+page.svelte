@@ -13,6 +13,7 @@
         weight: number;
     };
     type Assessment = {
+        id: number;
         assessment_type: string;
         learning_outcomes: AssessmentLO[];
     };
@@ -29,6 +30,7 @@
     } | null = null;
     let loading = true;
     let error: string | null = null;
+    let existingGrades: Record<string, Record<number, number>> = {};
 
     let showAssignModal = false;
     let students: { id: number; username: string; selected: boolean }[] = [];
@@ -48,6 +50,10 @@
                 userRole = data.role;
             }
 
+            if (userRole == 'student') {
+                goto('/dashboard/');
+            }
+
             const res = await fetch(
                 `http://localhost:8080/api/courses/${courseId}/`,
                 {
@@ -56,6 +62,8 @@
             );
             if (!res.ok) throw new Error('Failed to fetch course details');
             course = await res.json();
+            loadStudents();
+            buildAssessmentLabels();
         } catch (err) {
             console.error(err);
             error = 'Could not load course details';
@@ -63,6 +71,21 @@
             loading = false;
         }
     });
+
+    async function loadExistingGrades() {
+        if (!accessToken) return;
+
+        const res = await fetch(
+            `http://localhost:8080/api/courses/${courseId}/grades/`,
+            {
+                headers: { Authorization: `Bearer ${accessToken}` },
+            },
+        );
+
+        if (res.ok) {
+            existingGrades = await res.json();
+        }
+    }
 
     async function loadStudents() {
         if (!accessToken) return;
@@ -149,6 +172,93 @@
             alert('Failed to delete course');
         }
     }
+
+    // ===== EVALUATE STATE =====
+    let showEvaluateModal = false;
+    let evaluateError = '';
+
+    type StudentGrades = {
+        username: string;
+        grades: Record<number, number>;
+    };
+
+    type AssessmentLabelMap = Record<number, string>;
+
+    let gradeInputs: StudentGrades[] = [];
+    let assessmentLabels: AssessmentLabelMap = {};
+
+    function buildAssessmentLabels() {
+        if (!course) return;
+
+        const typeCounters: Record<string, number> = {};
+        assessmentLabels = {};
+
+        course.assessments.forEach((a) => {
+            typeCounters[a.assessment_type] =
+                (typeCounters[a.assessment_type] || 0) + 1;
+
+            assessmentLabels[a.id] =
+                `${a.assessment_type} ${typeCounters[a.assessment_type]}`;
+        });
+    }
+
+    async function evaluteCourse() {
+        if (!course) return;
+
+        const selectedStudents = students.filter((s) => s.selected);
+        if (selectedStudents.length === 0) {
+            alert('Please select students first.');
+            return;
+        }
+
+        await loadExistingGrades();
+
+        gradeInputs = selectedStudents.map((s) => {
+            const grades: Record<number, number> = {};
+            const previous = existingGrades[s.username] || {};
+
+            course!.assessments.forEach((a) => {
+                grades[a.id] = previous[a.id] ?? 0;
+            });
+
+            return {
+                username: s.username,
+                grades,
+            };
+        });
+
+        showEvaluateModal = true;
+    }
+
+    async function submitEvaluation() {
+        if (!accessToken) return;
+
+        const payload = {
+            grades: Object.fromEntries(
+                gradeInputs.map((s) => [s.username, s.grades]),
+            ),
+        };
+
+        console.log(payload);
+        try {
+            const res = await fetch(
+                `http://localhost:8080/api/courses/${courseId}/evaluate/`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                    body: JSON.stringify(payload),
+                },
+            );
+
+            if (!res.ok) throw new Error();
+            showEvaluateModal = false;
+        } catch (err) {
+            evaluateError = 'Failed to save grades';
+        }
+    }
 </script>
 
 {#if loading}
@@ -180,6 +290,13 @@
                             Students
                         </button>
                     {/if}
+
+                    <button
+                        on:click={evaluteCourse}
+                        class="px-4 py-2 bg-purple-600/20 text-purple-300 rounded-xl transition duration-200"
+                    >
+                        Grades
+                    </button>
 
                     <button
                         on:click={editCourse}
@@ -244,7 +361,7 @@
                                 <p
                                     class="text-purple-400 font-semibold uppercase mb-2 tracking-wider"
                                 >
-                                    {a.assessment_type}
+                                    {assessmentLabels[a.id]}
                                 </p>
                             </div>
                         {/each}
@@ -326,6 +443,74 @@
                         class="px-4 py-2 rounded-lg text-sm bg-purple-500/30 hover:bg-purple-500/40 text-purple-200 transition"
                     >
                         Assign
+                    </button>
+                </div>
+            </div>
+        </div>
+    {/if}
+    {#if showEvaluateModal}
+        <div
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md"
+        >
+            <div
+                class="w-full max-w-3xl rounded-2xl bg-[#0f0f18] border border-white/10 p-6 space-y-4"
+            >
+                <h2 class="text-lg font-semibold text-white">
+                    Evaluate Students
+                </h2>
+
+                {#if evaluateError}
+                    <p class="text-red-400 text-sm">{evaluateError}</p>
+                {/if}
+
+                <div class="max-h-[60vh] overflow-auto space-y-4">
+                    {#each gradeInputs as s}
+                        <div class="rounded-xl bg-[#0b0b10] p-4">
+                            <p class="text-purple-400 mb-3 font-medium">
+                                {s.username}
+                            </p>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {#each Object.entries(s.grades) as [assessmentId, value]}
+                                    <div class="space-y-1">
+                                        <label
+                                            class="text-xs uppercase tracking-wide text-gray-400"
+                                        >
+                                            {assessmentLabels[
+                                                Number(assessmentId)
+                                            ]}
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            bind:value={
+                                                s.grades[Number(assessmentId)]
+                                            }
+                                            class="w-full rounded-xl bg-[#050508] border border-white/10
+                   px-4 py-3 text-sm text-white
+                   focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                        />
+                                    </div>
+                                {/each}
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+
+                <div class="flex justify-end gap-3 pt-2">
+                    <button
+                        on:click={() => (showEvaluateModal = false)}
+                        class="px-4 py-2 rounded-lg bg-white/5 text-gray-300"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        on:click={submitEvaluation}
+                        class="px-4 py-2 rounded-lg bg-purple-500/40 text-purple-100"
+                    >
+                        Save
                     </button>
                 </div>
             </div>

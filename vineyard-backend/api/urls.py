@@ -33,6 +33,16 @@ urlpatterns = [
     ),
     path("courses/<int:course_id>/delete/", views.delete_course, name="delete_course"),
     path(
+        "courses/<int:course_id>/evaluate/",
+        views.evaluate_course,
+        name="evaluate_course",
+    ),
+    path(
+        "courses/<int:course_id>/grades/",
+        views.course_existing_grades,
+        name="existing_grades",
+    ),
+    path(
         "courses/<int:course_id>/students/",
         views.filter_students_by_courses,
         name="filter_students_by_courses",
