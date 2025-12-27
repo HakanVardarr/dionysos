@@ -3,6 +3,8 @@
     import { page } from '$app/state';
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
+    import * as XLSX from 'xlsx';
+    import { capitalize } from '$lib/utils';
 
     type LearningOutcome = {
         description: string;
@@ -36,6 +38,55 @@
     let students: { id: number; username: string; selected: boolean }[] = [];
     let modalError = '';
     let userRole: string | null = null;
+
+    async function handleExcelUpload(event: Event) {
+        const input = event.target as HTMLInputElement;
+        if (!input.files || input.files.length === 0) return;
+
+        const file = input.files[0];
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData: { [key: string]: any }[] = XLSX.utils.sheet_to_json(
+            worksheet,
+            { header: 1 },
+        );
+
+        if (jsonData.length < 2) return;
+
+        const headers: string[] = jsonData[0].map(String);
+        const rows = jsonData.slice(1);
+
+        rows.forEach((row) => {
+            const username = row[0];
+            const student = gradeInputs.find((s) => s.username == username);
+
+            if (!student) return;
+
+            if (!student) return;
+
+            headers.forEach((header, colIndex) => {
+                if (colIndex === 0) return;
+                const assessmentId = Number(
+                    Object.entries(assessmentLabels).find(
+                        ([id, label]) => label == header,
+                    )?.[0],
+                );
+
+                if (!assessmentId) return;
+                const value = Number(row[colIndex]);
+                if (!isNaN(value)) {
+                    student.grades = {
+                        ...student.grades,
+                        [assessmentId]: value,
+                    };
+                }
+            });
+
+            gradeInputs = [...gradeInputs];
+        });
+    }
 
     onMount(async () => {
         auth.subscribe(($auth) => (accessToken = $auth.access))();
@@ -197,8 +248,9 @@
             typeCounters[a.assessment_type] =
                 (typeCounters[a.assessment_type] || 0) + 1;
 
-            assessmentLabels[a.id] =
-                `${a.assessment_type} ${typeCounters[a.assessment_type]}`;
+            assessmentLabels[a.id] = capitalize(
+                `${a.assessment_type} ${typeCounters[a.assessment_type]}`,
+            );
         });
     }
 
@@ -497,6 +549,20 @@
                             </div>
                         </div>
                     {/each}
+                </div>
+                <!-- Excel Upload -->
+                <div class="flex justify-start gap-3 pt-2">
+                    <label
+                        class="px-4 py-2 rounded-lg bg-green-500/30 hover:bg-green-500/40 text-green-100 cursor-pointer"
+                    >
+                        Upload Excel
+                        <input
+                            type="file"
+                            accept=".xlsx,.xls"
+                            class="hidden"
+                            on:change={handleExcelUpload}
+                        />
+                    </label>
                 </div>
 
                 <div class="flex justify-end gap-3 pt-2">

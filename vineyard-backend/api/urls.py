@@ -47,6 +47,11 @@ urlpatterns = [
         views.filter_students_by_courses,
         name="filter_students_by_courses",
     ),
+    path(
+        "reports/generate/",
+        views.generate_reports,
+        name="generate_reports",
+    ),
     path("tasks/generate/", views.start_generate_task, name="start_generate_task"),
     path(
         "tasks/generate/<task_id>/",

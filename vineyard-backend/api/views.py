@@ -1,4 +1,12 @@
-from core.models import Course, ProgramOutcome, StudentAssessmentScore, User
+from core.models import (
+    AssessmentLearningOutcome,
+    Course,
+    ProgramLearningOutcome,
+    ProgramOutcome,
+    StudentAssessmentScore,
+    User,
+)
+from core.reports import calculate_course_report
 from core.serializers import (
     CourseCreateSerializer,
     CourseDetailSerializer,
@@ -551,3 +559,111 @@ def course_existing_grades(request, course_id):
         result[student_key][s.assesment.id] = s.score
 
     return Response(result)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def generate_reports(request):
+    if request.user.role != "head":
+        return Response({"detail": "Forbidden"}, status=403)
+
+    courses = Course.objects.all()
+
+    program_outcome_totals = {}
+    program_outcome_weights = {}
+
+    course_reports = []
+
+    for course in courses:
+        assessments = course.assesments.all()
+
+        # 🔹 TYPE COUNTERS (midterm → 1,2 / final → 1 ...)
+        type_counters = {}
+
+        # --- 1️⃣ Assessment averages + LABEL ---
+        assessment_results = {}
+
+        for a in assessments:
+            scores = StudentAssessmentScore.objects.filter(assesment=a)
+            avg = (
+                sum(s.score for s in scores) / scores.count() if scores.exists() else 0
+            )
+
+            # 🔹 Counter
+            type_counters[a.name] = type_counters.get(a.name, 0) + 1
+
+            label = f"{a.get_name_display()} {type_counters[a.name]}"
+
+            assessment_results[str(a.id)] = {
+                "label": label,  # ✅ Midterm 1, Midterm 2
+                "average": round(avg, 2),
+            }
+
+        # --- 2️⃣ Learning Outcome scores (hesaplama only) ---
+        lo_scores = {}
+
+        for lo in course.learning_outcomes.all():
+            total = 0
+            weight_sum = 0
+
+            alos = AssessmentLearningOutcome.objects.filter(
+                learning_outcome=lo,
+                assesment__course=course,
+            )
+
+            for alo in alos:
+                ass_id = str(alo.assesment.id)
+                avg = assessment_results.get(ass_id, {}).get("average", 0)
+
+                total += avg * alo.weight
+                weight_sum += alo.weight
+
+            lo_scores[lo.id] = total / weight_sum if weight_sum else 0
+
+        # --- 3️⃣ Program Outcome contributions ---
+        course_po_contrib = {}
+
+        for lo in course.learning_outcomes.all():
+            lo_score = lo_scores.get(lo.id, 0)
+
+            for plo in ProgramLearningOutcome.objects.filter(learning_outcome=lo):
+                po_code = plo.program_outcome.code
+                weighted = lo_score * plo.weight
+
+                program_outcome_totals[po_code] = (
+                    program_outcome_totals.get(po_code, 0) + weighted
+                )
+                program_outcome_weights[po_code] = (
+                    program_outcome_weights.get(po_code, 0) + plo.weight
+                )
+
+                course_po_contrib[po_code] = (
+                    course_po_contrib.get(po_code, 0) + weighted
+                )
+
+        course_reports.append(
+            {
+                "course_code": course.code,
+                "course_name": course.name,
+                "assessments": assessment_results,
+                "program_outcome_contribution": {
+                    k: round(v, 2) for k, v in course_po_contrib.items()
+                },
+            }
+        )
+
+    # --- 4️⃣ GLOBAL Program Outcomes ---
+    final_program_outcomes = {}
+
+    for po, total in program_outcome_totals.items():
+        final_program_outcomes[po] = round(
+            total / program_outcome_weights[po] if program_outcome_weights[po] else 0,
+            2,
+        )
+
+    return Response(
+        {
+            "reports": course_reports,
+            "program_outcomes": final_program_outcomes,
+        }
+    )
