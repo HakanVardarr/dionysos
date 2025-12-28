@@ -48,9 +48,7 @@
 
             if (role === 'head') links = allLinks;
             else if (role === 'teacher')
-                links = allLinks.filter(
-                    (l) => l.name === 'Courses' || l.name === 'Reports',
-                );
+                links = allLinks.filter((l) => l.name === 'Courses');
             else links = [];
         }
 

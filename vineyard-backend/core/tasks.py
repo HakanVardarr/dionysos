@@ -112,3 +112,67 @@ Instructions:
             result_json = {"raw_text": result_text}
 
     return result_json
+
+
+@shared_task
+def generate_program_suggestions(program_payload: dict):
+    """
+    program_payload örneği:
+    {
+        "program_name": "Computer Science Engineering",
+        "program_outcomes": { ... },
+        "courses": [ ... ]
+    }
+    """
+    prompt = f"""
+You are an expert university program coordinator. I will provide you with a program's name, a list of Program Outcomes (POs) with descriptions, and the courses in the program with their assessments and average scores.
+
+Program Name:
+{program_payload['program_name']}
+
+Program Outcomes:
+{json.dumps(program_payload['program_outcomes'], indent=2)}
+
+Courses:
+{json.dumps(program_payload['courses'], indent=2)}
+
+Instructions:
+1. Analyze the program outcomes and the courses' assessment scores.
+2. Identify areas where the program can be improved based on low PO scores or course performance.
+3. Provide actionable suggestions for curriculum improvement, course redesign, or assessment strategies to improve PO achievements.
+4. Output only JSON with the following structure:
+
+{{
+  "Suggestions": [
+    {{"PO": "PO1", "course": "CSE311", "issue": "Low assessment scores", "recommendation": "Increase practical assignments and provide more lab exercises"}}
+  ]
+}}
+
+Do not include any markdown, explanations, or text outside the JSON.
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are an expert university program coordinator.",
+            },
+            {"role": "user", "content": prompt},
+        ],
+    )
+
+    result_text = response.choices[0].message.content
+
+    try:
+        result_json = json.loads(result_text)
+    except json.JSONDecodeError:
+        import re
+
+        cleaned = re.sub(r"```(?:json)?|```", "", result_text).strip()
+        try:
+            result_json = json.loads(cleaned)
+        except json.JSONDecodeError:
+            result_json = {"raw_text": result_text}
+
+    return result_json

@@ -667,3 +667,25 @@ def generate_reports(request):
             "program_outcomes": final_program_outcomes,
         }
     )
+
+
+from core.tasks import generate_program_suggestions
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def start_generate_program_suggestions(request):
+    task = generate_program_suggestions.delay(request.data)
+    return Response({"task_id": task.id}, status=202)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_generate_program_suggestions_result(request, task_id):
+    task = AsyncResult(task_id)
+    if task.state == "SUCCESS":
+        return Response({"status": "SUCCESS", "result": task.result})
+    elif task.state == "FAILURE":
+        return Response({"status": "FAILURE", "error": str(task.result)})
+    else:
+        return Response({"status": task.state})
