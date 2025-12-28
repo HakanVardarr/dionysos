@@ -49,7 +49,7 @@
             if (role === 'head') links = allLinks;
             else if (role === 'teacher')
                 links = allLinks.filter((l) => l.name === 'Courses');
-            else links = [];
+            else links = [{ name: 'Grades', href: '/dashboard/grades' }];
         }
 
         loading = false;

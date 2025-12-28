@@ -66,6 +66,7 @@ urlpatterns = [
         views.get_generate_program_suggestions_result,
         name="get_generate",
     ),
+    path("me/courses/", views.me_courses, name="me_courses"),
     path("token/login/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("token/verify/", TokenVerifyView.as_view(), name="token_verify"),

@@ -689,3 +689,47 @@ def get_generate_program_suggestions_result(request, task_id):
         return Response({"status": "FAILURE", "error": str(task.result)})
     else:
         return Response({"status": task.state})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def me_courses(request):
+    user = request.user
+
+    if user.role != "student":
+        return Response(
+            {"detail": "Only students can access their courses"}, status=403
+        )
+
+    # Öğrencinin kayıtlı olduğu tüm kurslar
+    courses = user.courses.prefetch_related(
+        "assesments", "assesments__student_scores"
+    ).all()
+
+    result = []
+
+    for course in courses:
+
+        grades = {
+            score.assesment.id: score.score
+            for score in StudentAssessmentScore.objects.filter(
+                student=user, assesment__course=course
+            )
+        }
+
+        course_data = {
+            "id": course.id,
+            "code": course.code,
+            "name": course.name,
+            "assessments": [
+                {
+                    "id": a.id,
+                    "name": a.get_name_display(),
+                    "score": grades.get(a.id, None),
+                }
+                for a in course.assesments.all()
+            ],
+        }
+        result.append(course_data)
+
+    return Response({"courses": result})

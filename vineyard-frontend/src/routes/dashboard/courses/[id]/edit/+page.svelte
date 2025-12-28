@@ -20,7 +20,7 @@
     };
 
     type Assessment = {
-        assessment_type: 'midterm' | 'project' | 'final';
+        assessment_type: 'midterm' | 'project' | 'final' | 'assignment';
         learning_outcomes: AssessmentLearningOutcome[];
     };
 
@@ -40,9 +40,7 @@
 
         const resPO = await fetch(
             'http://localhost:8080/api/program-outcomes/',
-            {
-                headers: { Authorization: `Bearer ${accessToken}` },
-            },
+            { headers: { Authorization: `Bearer ${accessToken}` } },
         );
         if (resPO.ok) {
             const data = await resPO.json();
@@ -51,17 +49,13 @@
 
         const resCourse = await fetch(
             `http://localhost:8080/api/courses/${courseId}/`,
-            {
-                headers: { Authorization: `Bearer ${accessToken}` },
-            },
+            { headers: { Authorization: `Bearer ${accessToken}` } },
         );
 
         if (resCourse.ok) {
             const data = await resCourse.json();
             courseCode = data.code;
             courseName = data.name;
-
-            console.log(data);
 
             learningOutcomes = data.learning_outcomes.map((lo: any) => ({
                 description: lo.description,
@@ -85,6 +79,7 @@
         }
     });
 
+    // Add / Remove Functions
     function addLearningOutcome() {
         learningOutcomes = [
             ...learningOutcomes,
@@ -95,6 +90,10 @@
                 ],
             },
         ];
+    }
+
+    function removeLearningOutcome(index: number) {
+        learningOutcomes = learningOutcomes.filter((_, i) => i !== index);
     }
 
     function addProgramOutcome(loIndex: number) {
@@ -111,6 +110,11 @@
         );
     }
 
+    function removeProgramOutcome(loIndex: number, poIndex: number) {
+        learningOutcomes[loIndex].program_outcomes.splice(poIndex, 1);
+        learningOutcomes = [...learningOutcomes];
+    }
+
     function addAssessment() {
         assessments = [
             ...assessments,
@@ -121,18 +125,19 @@
         ];
     }
 
+    function removeAssessment(aIndex: number) {
+        assessments.splice(aIndex, 1);
+        assessments = [...assessments];
+    }
+
     function addAssessmentLO(aIndex: number) {
-        assessments = assessments.map((a, i) =>
-            i === aIndex
-                ? {
-                      ...a,
-                      learning_outcomes: [
-                          ...a.learning_outcomes,
-                          { loIndex: 0, weight: 1 },
-                      ],
-                  }
-                : a,
-        );
+        assessments[aIndex].learning_outcomes.push({ loIndex: 0, weight: 1 });
+        assessments = [...assessments];
+    }
+
+    function removeAssessmentLO(aIndex: number, loIndex: number) {
+        assessments[aIndex].learning_outcomes.splice(loIndex, 1);
+        assessments = [...assessments];
     }
 
     async function updateCourse() {
@@ -170,11 +175,8 @@
             },
         );
 
-        if (res.ok) {
-            goto('/dashboard/courses');
-        } else {
-            alert('Failed to update course');
-        }
+        if (res.ok) goto('/dashboard/courses');
+        else alert('Failed to update course');
     }
 </script>
 
@@ -200,7 +202,6 @@
                     class="mt-2 w-full rounded-lg bg-[#0b0b10] border border-white/5 px-4 py-2.5 text-white outline-none focus:border-purple-500/50"
                 />
             </div>
-
             <div>
                 <label class="text-xs text-gray-400" for="course-name"
                     >Course Name</label
@@ -213,7 +214,7 @@
             </div>
         </div>
 
-        <!-- Learning Outcomes Section -->
+        <!-- Learning Outcomes -->
         <section class="space-y-6">
             <div class="flex items-center justify-between">
                 <h2 class="text-lg font-medium text-white">
@@ -230,9 +231,16 @@
                 <div
                     class="rounded-xl p-5 space-y-4 bg-[#0f0f16] border border-white/5"
                 >
-                    <h3 class="text-sm font-medium text-purple-400">
-                        {courseCode || 'COURSE'}-LO{i + 1}
-                    </h3>
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-sm font-medium text-purple-400">
+                            {courseCode || 'COURSE'}-LO{i + 1}
+                        </h3>
+                        <button
+                            on:click={() => removeLearningOutcome(i)}
+                            class="text-red-400 hover:text-red-300 text-sm"
+                            >✕</button
+                        >
+                    </div>
                     <input
                         bind:value={lo.description}
                         placeholder="Learning outcome description"
@@ -241,26 +249,31 @@
 
                     <div class="space-y-2">
                         <p class="text-xs text-gray-400">Program Outcomes</p>
-                        {#each lo.program_outcomes as po}
-                            <div class="grid grid-cols-3 gap-3">
+                        {#each lo.program_outcomes as po, poIndex}
+                            <div class="flex items-center gap-3">
                                 <select
                                     bind:value={po.code}
-                                    class="col-span-2 rounded-lg bg-[#0b0b10] border border-white/5 px-3 py-2 text-white"
+                                    class="flex-1 rounded-lg bg-[#0b0b10] border border-white/5 px-3 py-2 text-white"
                                 >
-                                    {#each programOutcomes as p}
-                                        <option value={p.code}
+                                    {#each programOutcomes as p}<option
+                                            value={p.code}
                                             >{p.description}</option
-                                        >
-                                    {/each}
+                                        >{/each}
                                 </select>
                                 <select
                                     bind:value={po.weight}
-                                    class="rounded-lg bg-[#0b0b10] border border-white/5 px-3 py-2 text-white"
+                                    class="w-16 rounded-lg bg-[#0b0b10] border border-white/5 px-3 py-2 text-white"
                                 >
                                     {#each [1, 2, 3, 4, 5] as w}<option
                                             value={w}>{w}</option
                                         >{/each}
                                 </select>
+                                <button
+                                    on:click={() =>
+                                        removeProgramOutcome(i, poIndex)}
+                                    class="text-red-400 hover:text-red-300 text-sm"
+                                    >✕</button
+                                >
                             </div>
                         {/each}
                         <button
@@ -273,7 +286,7 @@
             {/each}
         </section>
 
-        <!-- Assessments Section -->
+        <!-- Assessments -->
         <section class="space-y-6">
             <div class="flex items-center justify-between">
                 <h2 class="text-lg font-medium text-white">Assessments</h2>
@@ -288,37 +301,49 @@
                 <div
                     class="rounded-xl p-5 space-y-4 bg-[#0f0f16] border border-white/5"
                 >
-                    <select
-                        bind:value={a.assessment_type}
-                        class="rounded-lg bg-[#0b0b10] border border-white/5 px-3 py-2 text-white w-44"
-                    >
-                        <option value="midterm">Midterm</option>
-                        <option value="project">Project</option>
-                        <option value="final">Final</option>
-                        <option value="assignment">Assignment</option>
-                    </select>
+                    <div class="flex justify-between items-center">
+                        <select
+                            bind:value={a.assessment_type}
+                            class="rounded-lg bg-[#0b0b10] border border-white/5 px-3 py-2 text-white w-44"
+                        >
+                            <option value="midterm">Midterm</option>
+                            <option value="project">Project</option>
+                            <option value="final">Final</option>
+                            <option value="assignment">Assignment</option>
+                        </select>
+                        <button
+                            on:click={() => removeAssessment(aIndex)}
+                            class="text-red-400 hover:text-red-300 text-sm"
+                            >✕</button
+                        >
+                    </div>
 
-                    {#each a.learning_outcomes as lo}
-                        <div class="grid grid-cols-3 gap-3">
+                    {#each a.learning_outcomes as lo, loIndex}
+                        <div class="flex items-center gap-3">
                             <select
                                 bind:value={lo.loIndex}
-                                class="col-span-2 rounded-lg bg-[#0b0b10] border border-white/5 px-3 py-2 text-white"
+                                class="flex-1 rounded-lg bg-[#0b0b10] border border-white/5 px-3 py-2 text-white"
                             >
-                                {#each learningOutcomes as _, i}
-                                    <option value={i}
+                                {#each learningOutcomes as _, i}<option
+                                        value={i}
                                         >{courseCode || 'COURSE'}-LO{i +
                                             1}</option
-                                    >
-                                {/each}
+                                    >{/each}
                             </select>
                             <select
                                 bind:value={lo.weight}
-                                class="rounded-lg bg-[#0b0b10] border border-white/5 px-3 py-2 text-white"
+                                class="w-16 rounded-lg bg-[#0b0b10] border border-white/5 px-3 py-2 text-white"
                             >
                                 {#each [1, 2, 3, 4, 5] as w}<option value={w}
                                         >{w}</option
                                     >{/each}
                             </select>
+                            <button
+                                on:click={() =>
+                                    removeAssessmentLO(aIndex, loIndex)}
+                                class="text-red-400 hover:text-red-300 text-sm"
+                                >✕</button
+                            >
                         </div>
                     {/each}
                     <button
