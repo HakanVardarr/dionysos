@@ -16,7 +16,7 @@ class User(AbstractUser):
         related_name="students",
         blank=True,
         limit_choices_to={"role": "student"},
-    )
+    )   
 
 
 class Course(models.Model):
